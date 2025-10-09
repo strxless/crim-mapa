@@ -118,20 +118,32 @@ export async function ensureSchema() {
 // Query helpers abstracted
 export async function listPins(category?: string): Promise<DBPin[]> {
   if (isPostgresSelected()) {
-    const where = category ? pg`WHERE p.category = ${category}` : pg``;
-    const { rows } = await pg`
-      SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
-             p.created_at, p.updated_at, p.version,
-             COALESCE(vc.cnt, 0)::int AS visits_count
-      FROM pins p
-      LEFT JOIN (
-        SELECT pin_id, COUNT(*)::int AS cnt
-        FROM visits
-        GROUP BY pin_id
-      ) vc ON vc.pin_id = p.id
-      ${where}
-      ORDER BY p.updated_at DESC, p.id DESC
-    `;
+    const { rows } = category 
+      ? await pg`
+          SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
+                 p.created_at, p.updated_at, p.version,
+                 COALESCE(vc.cnt, 0)::int AS visits_count
+          FROM pins p
+          LEFT JOIN (
+            SELECT pin_id, COUNT(*)::int AS cnt
+            FROM visits
+            GROUP BY pin_id
+          ) vc ON vc.pin_id = p.id
+          WHERE p.category = ${category}
+          ORDER BY p.updated_at DESC, p.id DESC
+        `
+      : await pg`
+          SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
+                 p.created_at, p.updated_at, p.version,
+                 COALESCE(vc.cnt, 0)::int AS visits_count
+          FROM pins p
+          LEFT JOIN (
+            SELECT pin_id, COUNT(*)::int AS cnt
+            FROM visits
+            GROUP BY pin_id
+          ) vc ON vc.pin_id = p.id
+          ORDER BY p.updated_at DESC, p.id DESC
+        `;
     return rows.map((r: any) => ({
       id: Number(r.id),
       title: r.title,
