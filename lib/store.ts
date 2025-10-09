@@ -170,12 +170,12 @@ export async function listPins(category?: string): Promise<DBPin[]> {
     });
     return result.rows.map((r: any) => ({
       id: Number(r.id),
-      title: r.title,
-      description: r.description ?? null,
+      title: String(r.title),
+      description: r.description ? String(r.description) : null,
       lat: Number(r.lat),
       lng: Number(r.lng),
-      category: r.category,
-      imageUrl: r.image_url ?? null,
+      category: String(r.category),
+      imageUrl: r.image_url ? String(r.image_url) : null,
       createdAt: String(r.created_at),
       updatedAt: String(r.updated_at),
       version: Number(r.version),
@@ -213,15 +213,15 @@ export async function createPin(input: { title: string; description?: string | n
       sql: `INSERT INTO pins (title, description, lat, lng, category, image_url) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, title, description, lat, lng, category, image_url, created_at, updated_at, version`,
       args: [title, description ?? null, lat, lng, category, imageUrl ?? null]
     });
-    const row = result.rows[0];
+    const row: any = result.rows[0];
     return {
       id: Number(row.id),
-      title: row.title,
-      description: row.description ?? null,
+      title: String(row.title),
+      description: row.description ? String(row.description) : null,
       lat: Number(row.lat),
       lng: Number(row.lng),
-      category: row.category,
-      imageUrl: row.image_url ?? null,
+      category: String(row.category),
+      imageUrl: row.image_url ? String(row.image_url) : null,
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
       version: Number(row.version),
@@ -266,7 +266,7 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
       args: [id] 
     });
     if (pinResult.rows.length === 0) return null;
-    const p = pinResult.rows[0];
+    const p: any = pinResult.rows[0];
     
     const visitsResult = await db.execute({
       sql: `SELECT id, pin_id, name, note, image_url, visited_at FROM visits WHERE pin_id = ? ORDER BY datetime(visited_at) DESC, id DESC LIMIT 50`,
@@ -276,12 +276,12 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
     return {
       pin: {
         id: Number(p.id),
-        title: p.title,
-        description: p.description ?? null,
+        title: String(p.title),
+        description: p.description ? String(p.description) : null,
         lat: Number(p.lat),
         lng: Number(p.lng),
-        category: p.category,
-        imageUrl: p.image_url ?? null,
+        category: String(p.category),
+        imageUrl: p.image_url ? String(p.image_url) : null,
         createdAt: String(p.created_at),
         updatedAt: String(p.updated_at),
         version: Number(p.version),
@@ -289,9 +289,9 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
       visits: visitsResult.rows.map((v: any) => ({
         id: Number(v.id),
         pinId: Number(v.pin_id),
-        name: v.name,
-        note: v.note ?? null,
-        imageUrl: v.image_url ?? null,
+        name: String(v.name),
+        note: v.note ? String(v.note) : null,
+        imageUrl: v.image_url ? String(v.image_url) : null,
         visitedAt: String(v.visited_at),
       })),
     };
@@ -347,15 +347,15 @@ export async function updatePin(id: number, input: { title: string; description?
       sql: `SELECT id, title, description, lat, lng, category, image_url, created_at, updated_at, version FROM pins WHERE id = ?`, 
       args: [id] 
     });
-    const r = result.rows[0];
+    const r: any = result.rows[0];
     return {
       id: Number(r.id),
-      title: r.title,
-      description: r.description ?? null,
+      title: String(r.title),
+      description: r.description ? String(r.description) : null,
       lat: Number(r.lat),
       lng: Number(r.lng),
-      category: r.category,
-      imageUrl: r.image_url ?? null,
+      category: String(r.category),
+      imageUrl: r.image_url ? String(r.image_url) : null,
       createdAt: String(r.created_at),
       updatedAt: String(r.updated_at),
       version: Number(r.version),
@@ -386,7 +386,10 @@ export async function listCategories(): Promise<Category[]> {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
     const result = await db.execute(`SELECT name, color FROM categories ORDER BY name ASC`);
-    return result.rows.map((r: any) => ({ name: r.name, color: r.color }));
+    return result.rows.map((r: any) => ({ 
+      name: String(r.name), 
+      color: String(r.color) 
+    }));
   }
 }
 
@@ -440,13 +443,13 @@ export async function addVisit(pinId: number, input: { name: string; note?: stri
       args: [pinId]
     });
     
-    const v = insertResult.rows[0];
+    const v: any = insertResult.rows[0];
     return {
       id: Number(v.id),
       pinId: Number(v.pin_id),
-      name: v.name,
-      note: v.note ?? null,
-      imageUrl: v.image_url ?? null,
+      name: String(v.name),
+      note: v.note ? String(v.note) : null,
+      imageUrl: v.image_url ? String(v.image_url) : null,
       visitedAt: String(v.visited_at)
     };
   }
