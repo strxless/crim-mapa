@@ -1,12 +1,15 @@
-import Database from "better-sqlite3";
+// lib/db.ts
+import { createClient } from '@libsql/client';
 
-let _db: Database.Database | null = null;
+let _db: ReturnType<typeof createClient> | null = null;
 
-export async function getSqlite() {
+export function getSqlite() {
   if (_db) return _db;
-  const file = process.env.SQLITE_PATH || "./data.sqlite";
-  _db = new Database(file);
-  _db.pragma("journal_mode = WAL");
-  _db.pragma("foreign_keys = ON");
+  
+  _db = createClient({
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+  
   return _db;
 }
