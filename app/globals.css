@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS zmienne dla motywu jasny/ciemny */
+:root {
+  --bg: #ffffff;
+  --fg: #0a0a0a;
+  --surface: #f3f4f6;
+  --muted: #4b5563;
+  --border: #e5e7eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --fg: #e5e7eb;
+    --surface: #171717;
+    --muted: #9ca3af;
+    --border: #262626;
+  }
+}
+
+/* Minimalny scrollbar */
+*::-webkit-scrollbar { height: 8px; width: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+html, body, #__next {
+  height: 100%;
+}
