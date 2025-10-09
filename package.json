@@ -13,7 +13,6 @@
     "@libsql/client": "^0.15.15",
     "@vercel/blob": "^0.24.0",
     "@vercel/postgres": "^0.8.0",
-    "better-sqlite3": "^9.6.0",
     "leaflet": "^1.9.4",
     "next": "14",
     "react": "^18.2.0",
