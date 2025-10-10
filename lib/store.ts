@@ -1,4 +1,10 @@
-import { sql as pg } from "@vercel/postgres";
+import postgres from "postgres"
+
+const sql = postgres(process.env.POSTGRES_URL!, {
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
 
 // A thin store abstraction that supports SQLite (default for local dev) and Postgres (for Vercel)
 // Provider selection:
@@ -39,7 +45,7 @@ function isPostgresSelected() {
 let initOnce: Promise<void> | null = null;
 
 async function ensurePgSchema() {
-  await pg`CREATE TABLE IF NOT EXISTS pins (
+  await sql`CREATE TABLE IF NOT EXISTS pins (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
@@ -51,8 +57,8 @@ async function ensurePgSchema() {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     version INTEGER NOT NULL DEFAULT 1
   );`;
-  await pg`ALTER TABLE pins ADD COLUMN IF NOT EXISTS image_url TEXT;`;
-  await pg`CREATE TABLE IF NOT EXISTS visits (
+  await sql`ALTER TABLE pins ADD COLUMN IF NOT EXISTS image_url TEXT;`;
+  await sql`CREATE TABLE IF NOT EXISTS visits (
     id SERIAL PRIMARY KEY,
     pin_id INTEGER NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -60,9 +66,9 @@ async function ensurePgSchema() {
     image_url TEXT,
     visited_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );`;
-  await pg`ALTER TABLE visits ADD COLUMN IF NOT EXISTS image_url TEXT;`;
-  await pg`CREATE INDEX IF NOT EXISTS idx_visits_pin_id ON visits(pin_id);`;
-  await pg`CREATE TABLE IF NOT EXISTS categories (
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS image_url TEXT;`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_visits_pin_id ON visits(pin_id);`;
+  await sql`CREATE TABLE IF NOT EXISTS categories (
     name TEXT PRIMARY KEY,
     color TEXT NOT NULL
   );`;
@@ -118,8 +124,8 @@ export async function ensureSchema() {
 // Query helpers abstracted
 export async function listPins(category?: string): Promise<DBPin[]> {
   if (isPostgresSelected()) {
-    const { rows } = category 
-      ? await pg`
+    const rows = category 
+      ? await sql`
           SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
                  p.created_at, p.updated_at, p.version,
                  COALESCE(vc.cnt, 0)::int AS visits_count
@@ -132,7 +138,7 @@ export async function listPins(category?: string): Promise<DBPin[]> {
           WHERE p.category = ${category}
           ORDER BY p.updated_at DESC, p.id DESC
         `
-      : await pg`
+      : await sql`
           SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
                  p.created_at, p.updated_at, p.version,
                  COALESCE(vc.cnt, 0)::int AS visits_count
@@ -187,7 +193,7 @@ export async function listPins(category?: string): Promise<DBPin[]> {
 export async function createPin(input: { title: string; description?: string | null; lat: number; lng: number; category: string; imageUrl?: string | null; }): Promise<DBPin> {
   const { title, description, lat, lng, category, imageUrl } = input;
   if (isPostgresSelected()) {
-    const { rows } = await pg`
+    const rows = await sql`
       INSERT INTO pins (title, description, lat, lng, category, image_url)
       VALUES (${title}, ${description ?? null}, ${lat}, ${lng}, ${category}, ${imageUrl ?? null})
       RETURNING id, title, description, lat, lng, category, image_url, created_at, updated_at, version
@@ -232,10 +238,10 @@ export async function createPin(input: { title: string; description?: string | n
 
 export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits: DBVisit[] } | null> {
   if (isPostgresSelected()) {
-    const pinRes = await pg`SELECT * FROM pins WHERE id = ${id}`;
-    if (pinRes.rowCount === 0) return null;
-    const p: any = pinRes.rows[0];
-    const visitsRes = await pg`SELECT id, pin_id, name, note, image_url, visited_at FROM visits WHERE pin_id = ${id} ORDER BY visited_at DESC, id DESC LIMIT 50`;
+    const pinRes = await sql`SELECT * FROM pins WHERE id = ${id}`;
+    if (pinRes.length === 0) return null;
+    const p: any = pinRes[0];
+    const visitsRes = await sql`SELECT id, pin_id, name, note, image_url, visited_at FROM visits WHERE pin_id = ${id} ORDER BY visited_at DESC, id DESC LIMIT 50`;
     return {
       pin: {
         id: Number(p.id),
@@ -249,7 +255,7 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
         updatedAt: new Date(p.updated_at).toISOString?.() ?? String(p.updated_at),
         version: Number(p.version),
       },
-      visits: visitsRes.rows.map((v: any) => ({
+      visits: visitsRes.map((v: any) => ({
         id: Number(v.id),
         pinId: Number(v.pin_id),
         name: v.name,
@@ -301,19 +307,19 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
 export async function updatePin(id: number, input: { title: string; description?: string | null; category: string; imageUrl?: string | null; expectedUpdatedAt?: string | null }): Promise<DBPin | { conflict: true; serverUpdatedAt: string; }> {
   const { title, description, category, imageUrl, expectedUpdatedAt } = input;
   if (isPostgresSelected()) {
-    const current = await pg`SELECT updated_at FROM pins WHERE id = ${id}`;
-    if (current.rowCount === 0) throw new Error("Not found");
-    const serverUpdatedAt = new Date(current.rows[0].updated_at).toISOString?.() ?? String(current.rows[0].updated_at);
+    const current = await sql`SELECT updated_at FROM pins WHERE id = ${id}`;
+    if (current.length === 0) throw new Error("Not found");
+    const serverUpdatedAt = new Date(current[0].updated_at).toISOString?.() ?? String(current[0].updated_at);
     if (expectedUpdatedAt && expectedUpdatedAt !== serverUpdatedAt) {
       return { conflict: true as const, serverUpdatedAt };
     }
-    const res = await pg`
+    const res = await sql`
       UPDATE pins SET title = ${title}, description = ${description ?? null}, category = ${category}, image_url = ${imageUrl ?? null},
                       updated_at = now(), version = version + 1
       WHERE id = ${id}
       RETURNING id, title, description, lat, lng, category, image_url, created_at, updated_at, version
     `;
-    const r: any = res.rows[0];
+    const r: any = res[0];
     return {
       id: Number(r.id),
       title: r.title,
@@ -365,7 +371,7 @@ export async function updatePin(id: number, input: { title: string; description?
 
 export async function deletePin(id: number): Promise<void> {
   if (isPostgresSelected()) {
-    await pg`DELETE FROM pins WHERE id = ${id}`;
+    await sql`DELETE FROM pins WHERE id = ${id}`;
   } else {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
@@ -380,7 +386,7 @@ export type Category = { name: string; color: string };
 
 export async function listCategories(): Promise<Category[]> {
   if (isPostgresSelected()) {
-    const { rows } = await pg`SELECT name, color FROM categories ORDER BY name ASC`;
+    const rows = await sql`SELECT name, color FROM categories ORDER BY name ASC`;
     return rows.map((r: any) => ({ name: r.name as string, color: r.color as string }));
   } else {
     const { getSqlite } = await import("./sqlite");
@@ -395,7 +401,7 @@ export async function listCategories(): Promise<Category[]> {
 
 export async function createCategory(name: string, color: string): Promise<Category> {
   if (isPostgresSelected()) {
-    await pg`INSERT INTO categories(name, color) VALUES (${name}, ${color}) ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color`;
+    await sql`INSERT INTO categories(name, color) VALUES (${name}, ${color}) ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color`;
     return { name, color };
   } else {
     const { getSqlite } = await import("./sqlite");
@@ -411,11 +417,11 @@ export async function createCategory(name: string, color: string): Promise<Categ
 export async function addVisit(pinId: number, input: { name: string; note?: string | null; imageUrl?: string | null; }): Promise<DBVisit> {
   const { name, note, imageUrl } = input;
   if (isPostgresSelected()) {
-    const exists = await pg`SELECT id FROM pins WHERE id = ${pinId}`;
-    if (exists.rowCount === 0) throw new Error("Not found");
-    const res = await pg`INSERT INTO visits (pin_id, name, note, image_url) VALUES (${pinId}, ${name}, ${note ?? null}, ${imageUrl ?? null}) RETURNING id, pin_id, name, note, image_url, visited_at`;
-    await pg`UPDATE pins SET updated_at = now(), version = version + 1 WHERE id = ${pinId}`;
-    const v: any = res.rows[0];
+    const exists = await sql`SELECT id FROM pins WHERE id = ${pinId}`;
+    if (exists.length === 0) throw new Error("Not found");
+    const res = await sql`INSERT INTO visits (pin_id, name, note, image_url) VALUES (${pinId}, ${name}, ${note ?? null}, ${imageUrl ?? null}) RETURNING id, pin_id, name, note, image_url, visited_at`;
+    await sql`UPDATE pins SET updated_at = now(), version = version + 1 WHERE id = ${pinId}`;
+    const v: any = res[0];
     return { 
       id: Number(v.id), 
       pinId: Number(v.pin_id), 
