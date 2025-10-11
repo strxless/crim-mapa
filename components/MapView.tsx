@@ -375,27 +375,29 @@ export default function MapView() {
 
                   {/* Visits */}
                   {details?.pin?.id === p.id && (
-                    <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">Historia odwiedzin</div>
-                      <div className="max-h-40 overflow-auto space-y-1 pr-1">
-                        {(details.visits ?? []).map(v => (
-                          <div key={v.id} className="text-sm text-gray-800 dark:text-gray-300">
-                            <span className="font-medium">{v.name}</span>
-                            {v.note ? ` – ${v.note}` : ""}
-                            <span className="text-[11px] text-gray-600 dark:text-gray-400"> · {new Date(v.visitedAt).toLocaleString()}</span>
-                          </div>
-                        ))}
-                        {(details.visits ?? []).length === 0 && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Brak odwiedzin</div>
-                        )}
-                      </div>
-                      <div className="mt-2 space-y-2">
-                        <input className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" placeholder="Twoje imię" value={visitName} onChange={(e) => setVisitName(e.target.value)} />
-                        <textarea className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" placeholder="Notatka (opcjonalnie)" value={visitNote} onChange={(e) => setVisitNote(e.target.value)} />
-                        <button className="w-full px-3 py-2 rounded-md bg-blue-600 text-white text-sm" onClick={() => { if (!visitName.trim()) { alert("Podaj imię"); return; } addVisit(p.id, visitName.trim(), visitNote.trim() || undefined); setVisitName(""); setVisitNote(""); }}>Dodaj</button>
-                      </div>
-                    </div>
-                  )}
+  <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
+    <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">Historia odwiedzin</div>
+    <div className="max-h-[60px] overflow-y-auto space-y-2 pr-1 -mr-1">
+      {(details.visits ?? [])
+        .sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime())
+        .map(v => (
+          <div key={v.id} className="text-sm text-gray-800 dark:text-gray-300">
+            <span className="font-medium">{v.name}</span>
+            {v.note ? ` – ${v.note}` : ""}
+            <span className="text-[11px] text-gray-600 dark:text-gray-400"> · {new Date(v.visitedAt).toLocaleString()}</span>
+          </div>
+        ))}
+      {(details.visits ?? []).length === 0 && (
+        <div className="text-sm text-gray-600 dark:text-gray-400">Brak odwiedzin</div>
+      )}
+    </div>
+    <div className="mt-2 space-y-2">
+      <input className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" placeholder="Twoje imię" value={visitName} onChange={(e) => setVisitName(e.target.value)} />
+      <textarea className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" placeholder="Notatka (opcjonalnie)" value={visitNote} onChange={(e) => setVisitNote(e.target.value)} />
+      <button className="w-full px-3 py-2 rounded-md bg-blue-600 text-white text-sm" onClick={() => { if (!visitName.trim()) { alert("Podaj imię"); return; } addVisit(p.id, visitName.trim(), visitNote.trim() || undefined); setVisitName(""); setVisitNote(""); }}>Dodaj</button>
+    </div>
+  </div>
+)}
                 </div>
               </Popup>
             </CircleMarker>
