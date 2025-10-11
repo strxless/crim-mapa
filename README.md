@@ -1,7 +1,5 @@
 # Mapa Pinezek (Next.js + Leaflet + SQLite/Postgres)
-
 Prosta, minimalistyczna aplikacja do zarządzania pinezkami na mapie z prawie rzeczywistymi aktualizacjami.
-
 - Interaktywna mapa z zarządzaniem pinezkami
 - Częste odświeżanie (bez socketów) dla „prawie realtime” przy niskich kosztach
 - SQLite domyślnie lokalnie lub Postgres na Vercel
@@ -9,13 +7,11 @@ Prosta, minimalistyczna aplikacja do zarządzania pinezkami na mapie z prawie rz
 - Historia odwiedzin (bez logowania; wpisujesz swoje imię przy dodawaniu)
 - Interfejs mobilny, prosty i „slick” (mobile-first)
 - Współdzielone edycje zabezpieczone przez optymistyczną kontrolę wersji (409 przy konflikcie)
-
 ## Stos
 - Next.js 14 (App Router)
 - React + SWR (odświeżanie co ~3 sekundy)
 - Leaflet + react-leaflet z kafelkami OpenStreetMap (darmowe)
 - SQLite (better-sqlite3) lokalnie; Postgres przez @vercel/postgres na produkcji
-
 ## Szybki start (lokalnie)
 
 1) Instalacja zależności
@@ -51,13 +47,11 @@ Współbieżność: Klient przy aktualizacji wysyła expectedUpdatedAt. Jeśli u
 - PUT /api/pins/:id -> aktualizacja z optymistyczną kontrolą { title, description?, category, expectedUpdatedAt }
 - DELETE /api/pins/:id -> usunięcie pinezki
 - POST /api/pins/:id/visits -> dodanie odwiedzin { name, note? }
-
 ## Uwagi
 - Częstotliwość odświeżania ustawiona na ~3 sekundy: balans między świeżością a kosztami.
 - Gdy dwie osoby edytują tę samą pinezkę, druga dostanie 409; UI pokaże alert i odświeży dane.
-- Brak autoryzacji; przestrzeń jest współdzielona.
-
 ## Skrypty
 - npm run dev
 - npm run build
 - npm run start
+
