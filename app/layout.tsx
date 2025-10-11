@@ -10,14 +10,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pl">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
       </head>
       <body className="bg-[var(--bg)] text-[var(--fg)] touch-manipulation">
         <div className="min-h-dvh flex flex-col">
-          <header className="px-4 py-3 border-b border-[var(--border)] sticky top-0 z-10 bg-[var(--bg)]/80 backdrop-blur">
+          <header className="px-4 py-3 border-b border-[var(--border)] sticky top-0 z-10 bg-[var(--bg)]/95 backdrop-blur-md">
             <div className="max-w-5xl mx-auto flex items-center justify-between">
               <h1 className="text-base sm:text-lg font-semibold tracking-tight">CRiM Mapa</h1>
-              <a className="text-xs text-[var(--muted)]" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>
+              <a className="text-xs text-[var(--muted)] hover:text-[var(--fg)] transition-colors" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>
             </div>
           </header>
           <main className="flex-1">{children}</main>
