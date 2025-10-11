@@ -396,7 +396,7 @@ export default function MapView() {
                   {details?.pin?.id === p.id && (
                     <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
                       <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">Historia odwiedzin</div>
-                      <div className="max-h-[60px] overflow-y-auto space-y-2 pr-1 -mr-1">
+                      <div className="max-h-[90px] overflow-y-auto space-y-2 pr-1 -mr-1">
                         {(details.visits ?? [])
                           .sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime())
                           .map(v => (
