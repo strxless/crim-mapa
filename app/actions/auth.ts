@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 
-const CORRECT_PASSWORD = "CwelJebany";
+const CORRECT_PASSWORD = "Marmolada12";
 const MAX_ATTEMPTS = 3;
 const LOCK_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
