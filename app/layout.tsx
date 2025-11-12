@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "CRiM Mapa",
+  title: "CRiIM Mapa",
   description: "Prosta, współdzielona mapa pinezek z historią odwiedzin",
 };
 
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-dvh flex flex-col">
           <header className="px-4 py-3 border-b border-[var(--border)] sticky top-0 z-10 bg-[var(--bg)]/95 backdrop-blur-md">
             <div className="max-w-5xl mx-auto flex items-center justify-between">
-              <h1 className="text-base sm:text-lg font-semibold tracking-tight">CRiM Mapa</h1>
+              <h1 className="text-base sm:text-lg font-semibold tracking-tight">CRiIM Mapa</h1>
               <a className="text-xs text-[var(--muted)] hover:text-[var(--fg)] transition-colors" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>
             </div>
           </header>
