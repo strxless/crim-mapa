@@ -14,7 +14,7 @@ interface AttemptData {
 }
 
 // In-memory store for attempt tracking (per deployment)
-// For production, use Redis or database
+// For production, Redis or database will be used
 const attemptStore = new Map<string, AttemptData>();
 
 function hashPassword(password: string): string {

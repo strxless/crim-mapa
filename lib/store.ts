@@ -6,8 +6,6 @@ const sql = postgres(process.env.POSTGRES_URL!, {
   connect_timeout: 10,
 });
 
-// A thin store abstraction that supports SQLite (default for local dev) and Postgres (for Vercel)
-// Provider selection:
 // - If process.env.DB_PROVIDER === 'postgres' or Vercel Postgres env vars exist -> use Postgres
 // - Otherwise, use SQLite at SQLITE_PATH (default ./data.sqlite)
 
