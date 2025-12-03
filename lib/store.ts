@@ -75,7 +75,7 @@ async function ensurePgSchema() {
 async function ensureSqliteSchema() {
   const { getSqlite } = await import("./sqlite");
   const db = await getSqlite();
-  
+
   await db.batch([
     `CREATE TABLE IF NOT EXISTS pins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,10 +103,10 @@ async function ensureSqliteSchema() {
       color TEXT NOT NULL
     )`
   ], "write");
-  
+
   // Try to add columns if they don't exist (ignore errors)
-  try { await db.execute(`ALTER TABLE pins ADD COLUMN image_url TEXT`); } catch {}
-  try { await db.execute(`ALTER TABLE visits ADD COLUMN image_url TEXT`); } catch {}
+  try { await db.execute(`ALTER TABLE pins ADD COLUMN image_url TEXT`); } catch { }
+  try { await db.execute(`ALTER TABLE visits ADD COLUMN image_url TEXT`); } catch { }
 }
 
 export async function ensureSchema() {
@@ -122,7 +122,7 @@ export async function ensureSchema() {
 // Query helpers abstracted
 export async function listPins(category?: string): Promise<DBPin[]> {
   if (isPostgresSelected()) {
-    const rows = category 
+    const rows = category
       ? await sql`
           SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
                  p.created_at, p.updated_at, p.version,
@@ -265,18 +265,18 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
   } else {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
-    const pinResult = await db.execute({ 
-      sql: `SELECT * FROM pins WHERE id = ?`, 
-      args: [id] 
+    const pinResult = await db.execute({
+      sql: `SELECT * FROM pins WHERE id = ?`,
+      args: [id]
     });
     if (pinResult.rows.length === 0) return null;
     const p: any = pinResult.rows[0];
-    
+
     const visitsResult = await db.execute({
       sql: `SELECT id, pin_id, name, note, image_url, visited_at FROM visits WHERE pin_id = ? ORDER BY datetime(visited_at) DESC, id DESC LIMIT 50`,
       args: [id]
     });
-    
+
     return {
       pin: {
         id: Number(p.id),
@@ -333,9 +333,9 @@ export async function updatePin(id: number, input: { title: string; description?
   } else {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
-    const currentResult = await db.execute({ 
-      sql: `SELECT updated_at FROM pins WHERE id = ?`, 
-      args: [id] 
+    const currentResult = await db.execute({
+      sql: `SELECT updated_at FROM pins WHERE id = ?`,
+      args: [id]
     });
     if (currentResult.rows.length === 0) throw new Error("Not found");
     const current = currentResult.rows[0];
@@ -347,9 +347,9 @@ export async function updatePin(id: number, input: { title: string; description?
       sql: `UPDATE pins SET title = ?, description = ?, category = ?, image_url = ?, updated_at = datetime('now'), version = version + 1 WHERE id = ?`,
       args: [title, description ?? null, category, imageUrl ?? null, id]
     });
-    const result = await db.execute({ 
-      sql: `SELECT id, title, description, lat, lng, category, image_url, created_at, updated_at, version FROM pins WHERE id = ?`, 
-      args: [id] 
+    const result = await db.execute({
+      sql: `SELECT id, title, description, lat, lng, category, image_url, created_at, updated_at, version FROM pins WHERE id = ?`,
+      args: [id]
     });
     const r: any = result.rows[0];
     return {
@@ -373,9 +373,9 @@ export async function deletePin(id: number): Promise<void> {
   } else {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
-    await db.execute({ 
-      sql: `DELETE FROM pins WHERE id = ?`, 
-      args: [id] 
+    await db.execute({
+      sql: `DELETE FROM pins WHERE id = ?`,
+      args: [id]
     });
   }
 }
@@ -390,9 +390,9 @@ export async function listCategories(): Promise<Category[]> {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
     const result = await db.execute(`SELECT name, color FROM categories ORDER BY name ASC`);
-    return result.rows.map((r: any) => ({ 
-      name: String(r.name), 
-      color: String(r.color) 
+    return result.rows.map((r: any) => ({
+      name: String(r.name),
+      color: String(r.color)
     }));
   }
 }
@@ -420,33 +420,33 @@ export async function addVisit(pinId: number, input: { name: string; note?: stri
     const res = await sql`INSERT INTO visits (pin_id, name, note, image_url) VALUES (${pinId}, ${name}, ${note ?? null}, ${imageUrl ?? null}) RETURNING id, pin_id, name, note, image_url, visited_at`;
     await sql`UPDATE pins SET updated_at = now(), version = version + 1 WHERE id = ${pinId}`;
     const v: any = res[0];
-    return { 
-      id: Number(v.id), 
-      pinId: Number(v.pin_id), 
-      name: v.name, 
-      note: v.note ?? null, 
-      imageUrl: v.image_url ?? null, 
-      visitedAt: new Date(v.visited_at).toISOString?.() ?? String(v.visited_at) 
+    return {
+      id: Number(v.id),
+      pinId: Number(v.pin_id),
+      name: v.name,
+      note: v.note ?? null,
+      imageUrl: v.image_url ?? null,
+      visitedAt: new Date(v.visited_at).toISOString?.() ?? String(v.visited_at)
     };
   } else {
     const { getSqlite } = await import("./sqlite");
     const db = await getSqlite();
-    const existsResult = await db.execute({ 
-      sql: `SELECT id FROM pins WHERE id = ?`, 
-      args: [pinId] 
+    const existsResult = await db.execute({
+      sql: `SELECT id FROM pins WHERE id = ?`,
+      args: [pinId]
     });
     if (existsResult.rows.length === 0) throw new Error("Not found");
-    
+
     const insertResult = await db.execute({
       sql: `INSERT INTO visits (pin_id, name, note, image_url) VALUES (?, ?, ?, ?) RETURNING id, pin_id, name, note, image_url, visited_at`,
       args: [pinId, name, note ?? null, imageUrl ?? null]
     });
-    
+
     await db.execute({
       sql: `UPDATE pins SET updated_at = datetime('now'), version = version + 1 WHERE id = ?`,
       args: [pinId]
     });
-    
+
     const v: any = insertResult.rows[0];
     return {
       id: Number(v.id),
