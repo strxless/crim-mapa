@@ -17,7 +17,7 @@ interface User {
   id: number;
   email: string;
   password_hash: string;
-  must_change_password: boolean;
+  must_change_password: number | boolean;
   created_at: string;
   last_login?: string;
 }
@@ -179,7 +179,7 @@ export async function login(formData: FormData) {
 
   return {
     success: true,
-    mustChangePassword: user.must_change_password === 1 || user.must_change_password === true
+    mustChangePassword: Boolean(user.must_change_password)
   };
 }
 
