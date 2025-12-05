@@ -2,11 +2,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
-import { getSqlite } from "@/lib/sqlite";
+import postgres from "postgres";
 
-//
 const MAX_ATTEMPTS = 3;
-const LOCK_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const LOCK_DURATION = 24 * 60 * 60 * 1000;
 
 interface AttemptData {
   count: number;
@@ -22,7 +21,6 @@ interface User {
   last_login?: string;
 }
 
-// In-memory store for attempt tracking
 const attemptStore = new Map<string, AttemptData>();
 
 function hashPassword(password: string): string {
@@ -46,26 +44,29 @@ function getClientId(): string {
   return clientId;
 }
 
-// Initialize database with users table
+function getDB() {
+  return postgres(process.env.POSTGRES_URL!, {
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
+}
+
 export async function initDatabase() {
-  const db = await getSqlite();
+  const sql = getDB();
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      must_change_password BOOLEAN DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      last_login DATETIME
-    )
-  `);
+  await sql`CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    must_change_password BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_login TIMESTAMPTZ
+  )`;
 
-  // Check if default users exist
-  const result = await db.execute("SELECT COUNT(*) as count FROM users");
-  const count = result.rows[0].count as number;
+  const result = await sql`SELECT COUNT(*) as count FROM users`;
+  const count = Number(result[0].count);
 
-  // Insert default users if table is empty
   if (count === 0) {
     const defaultPassword = hashPassword("mopsgdynia");
     const users = [
@@ -79,12 +80,11 @@ export async function initDatabase() {
     ];
 
     for (const email of users) {
-      await db.execute({
-        sql: "INSERT INTO users (email, password_hash, must_change_password) VALUES (?, ?, 1)",
-        args: [email, defaultPassword]
-      });
+      await sql`INSERT INTO users (email, password_hash, must_change_password) VALUES (${email}, ${defaultPassword}, true)`;
     }
   }
+
+  await sql.end();
 }
 
 export async function login(formData: FormData) {
@@ -99,7 +99,6 @@ export async function login(formData: FormData) {
     };
   }
 
-  // Check if client is locked
   const attemptData = attemptStore.get(clientId);
   if (attemptData?.lockedUntil && Date.now() < attemptData.lockedUntil) {
     const remainingTime = Math.ceil(
@@ -113,22 +112,18 @@ export async function login(formData: FormData) {
     };
   }
 
-  // Clear lock if time has passed
   if (attemptData?.lockedUntil && Date.now() >= attemptData.lockedUntil) {
     attemptStore.delete(clientId);
   }
 
-  const db = await getSqlite();
+  const sql = getDB();
   const passwordHash = hashPassword(password);
 
-  // Find user
-  const result = await db.execute({
-    sql: "SELECT * FROM users WHERE email = ? AND password_hash = ?",
-    args: [email, passwordHash]
-  });
+  const result = await sql`SELECT * FROM users WHERE email = ${email} AND password_hash = ${passwordHash}`;
 
-  if (result.rows.length === 0) {
-    // Handle failed attempt
+  await sql.end();
+
+  if (result.length === 0) {
     const currentAttempts = attemptData?.count || 0;
     const newAttempts = currentAttempts + 1;
 
@@ -154,18 +149,13 @@ export async function login(formData: FormData) {
     };
   }
 
-  const user = result.rows[0] as unknown as User;
-
-  // Clear attempts on successful login
+  const user = result[0] as unknown as User;
   attemptStore.delete(clientId);
 
-  // Update last login
-  await db.execute({
-    sql: "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
-    args: [user.id]
-  });
+  const sql2 = getDB();
+  await sql2`UPDATE users SET last_login = now() WHERE id = ${user.id}`;
+  await sql2.end();
 
-  // Set auth cookie
   const cookieStore = cookies();
   cookieStore.set("auth_session", JSON.stringify({
     userId: user.id,
@@ -217,28 +207,22 @@ export async function changePassword(formData: FormData) {
     };
   }
 
-  const db = await getSqlite();
+  const sql = getDB();
   const currentPasswordHash = hashPassword(currentPassword);
 
-  // Verify current password
-  const result = await db.execute({
-    sql: "SELECT * FROM users WHERE id = ? AND password_hash = ?",
-    args: [session.userId, currentPasswordHash]
-  });
+  const result = await sql`SELECT * FROM users WHERE id = ${session.userId} AND password_hash = ${currentPasswordHash}`;
 
-  if (result.rows.length === 0) {
+  if (result.length === 0) {
+    await sql.end();
     return {
       success: false,
       error: "Nieprawidłowe obecne hasło."
     };
   }
 
-  // Update password
   const newPasswordHash = hashPassword(newPassword);
-  await db.execute({
-    sql: "UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?",
-    args: [newPasswordHash, session.userId]
-  });
+  await sql`UPDATE users SET password_hash = ${newPasswordHash}, must_change_password = false WHERE id = ${session.userId}`;
+  await sql.end();
 
   return {
     success: true,
@@ -273,13 +257,11 @@ export async function getCurrentUser() {
   const session = await getSession();
   if (!session) return null;
 
-  const db = await getSqlite();
-  const result = await db.execute({
-    sql: "SELECT id, email, must_change_password, last_login FROM users WHERE id = ?",
-    args: [session.userId]
-  });
+  const sql = getDB();
+  const result = await sql`SELECT id, email, must_change_password, last_login FROM users WHERE id = ${session.userId}`;
+  await sql.end();
 
-  if (result.rows.length === 0) return null;
+  if (result.length === 0) return null;
 
-  return result.rows[0] as unknown as Omit<User, 'password_hash'>;
+  return result[0] as unknown as Omit<User, 'password_hash'>;
 }
