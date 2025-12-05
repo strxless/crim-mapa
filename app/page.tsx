@@ -18,21 +18,26 @@ export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    // Initialize database and check auth on mount
     const init = async () => {
-      await initDatabase();
-      const authenticated = await checkAuth();
+      try {
+        await initDatabase();
+        const authenticated = await checkAuth();
 
-      if (authenticated) {
-        const user = await getCurrentUser();
-        if (user?.must_change_password) {
-          router.push("/change-password");
-          return;
+        if (authenticated) {
+          const user = await getCurrentUser();
+          if (user?.must_change_password) {
+            router.push("/change-password");
+            return;
+          }
         }
-      }
 
-      setIsAuthenticated(authenticated);
-      setIsLoading(false);
+        setIsAuthenticated(authenticated);
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        setIsAuthenticated(false); // Fallback to login on error
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     init();
