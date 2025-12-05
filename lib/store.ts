@@ -36,8 +36,8 @@ function isPostgresSelected() {
   if (process.env.DB_PROVIDER === 'postgres') return true;
   // Vercel automatically injects these if a Postgres db is attached
   const hasVercelPg = !!(process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
-  const isProd = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-  return hasVercelPg && isProd;
+  if (hasVercelPg) return true;
+  return false;
 }
 
 let initOnce: Promise<void> | null = null;
