@@ -3,26 +3,19 @@ import postgres from "postgres"
 console.log('Database provider check:', {
   USE_SQLITE: process.env.USE_SQLITE,
   HAS_POSTGRES_URL: !!process.env.POSTGRES_URL,
-  DB_PROVIDER: process.env.DB_PROVIDER
+  WILL_USE: process.env.USE_SQLITE === "true" ? "SQLite" : "PostgreSQL"
 });
 
-// Only create postgres connection if we'll actually use it
-let sql: ReturnType<typeof postgres> | null = null;
+const sql = postgres(process.env.POSTGRES_URL!, {
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 10,
+  onnotice: () => {} 
+});
 
-function getPostgresConnection() {
-  if (!sql) {
-    if (!process.env.POSTGRES_URL) {
-      throw new Error("POSTGRES_URL is required when using PostgreSQL");
-    }
-    sql = postgres(process.env.POSTGRES_URL, {
-      max: 1,
-      idle_timeout: 20,
-      connect_timeout: 10,
-      onnotice: () => {} // Suppress NOTICE messages
-    });
-  }
-  return sql;
-}
+
+// - If process.env.DB_PROVIDER === 'postgres' or Vercel Postgres env vars exist -> use Postgres
+// - Otherwise, use SQLite at SQLITE_PATH (default ./data.sqlite)
 
 export type DBPin = {
   id: number;
@@ -48,15 +41,10 @@ export type DBVisit = {
 };
 
 function isPostgresSelected() {
-  // Explicit DB_PROVIDER takes precedence
   if (process.env.DB_PROVIDER === 'postgres') return true;
-  if (process.env.DB_PROVIDER === 'sqlite') return false;
-  
-  // Check for Vercel Postgres environment variables
+  // Vercel automatically injects these if a Postgres db is attached
   const hasVercelPg = !!(process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
   if (hasVercelPg) return true;
-  
-  // Default to SQLite
   return false;
 }
 
@@ -64,8 +52,6 @@ let initOnce: Promise<void> | null = null;
 let schemaInitialized = false;
 
 async function ensurePgSchema() {
-  const sql = getPostgresConnection();
-  
   await sql`CREATE TABLE IF NOT EXISTS pins (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -78,9 +64,7 @@ async function ensurePgSchema() {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     version INTEGER NOT NULL DEFAULT 1
   );`;
-  
   await sql`ALTER TABLE pins ADD COLUMN IF NOT EXISTS image_url TEXT;`;
-  
   await sql`CREATE TABLE IF NOT EXISTS visits (
     id SERIAL PRIMARY KEY,
     pin_id INTEGER NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
@@ -89,10 +73,8 @@ async function ensurePgSchema() {
     image_url TEXT,
     visited_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );`;
-  
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS image_url TEXT;`;
   await sql`CREATE INDEX IF NOT EXISTS idx_visits_pin_id ON visits(pin_id);`;
-  
   await sql`CREATE TABLE IF NOT EXISTS categories (
     name TEXT PRIMARY KEY,
     color TEXT NOT NULL
@@ -131,36 +113,27 @@ async function ensureSqliteSchema() {
     )`
   ], "write");
 
+  // Try to add columns if they don't exist (ignore errors)
   try { await db.execute(`ALTER TABLE pins ADD COLUMN image_url TEXT`); } catch { }
   try { await db.execute(`ALTER TABLE visits ADD COLUMN image_url TEXT`); } catch { }
 }
 
 export async function ensureSchema() {
-  // Skip if already initialized in this serverless instance
   if (schemaInitialized) return;
-  
+
   if (!initOnce) {
     initOnce = (async () => {
-      try {
-        if (isPostgresSelected()) {
-          await ensurePgSchema();
-        } else {
-          await ensureSqliteSchema();
-        }
-        schemaInitialized = true;
-      } catch (error) {
-        // Reset so it can be retried
-        initOnce = null;
-        throw error;
-      }
+      if (isPostgresSelected()) await ensurePgSchema();
+      else await ensureSqliteSchema();
+      schemaInitialized = true; 
     })();
   }
   await initOnce;
 }
 
+// Query helpers abstracted
 export async function listPins(category?: string): Promise<DBPin[]> {
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     const rows = category
       ? await sql`
           SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
@@ -195,8 +168,8 @@ export async function listPins(category?: string): Promise<DBPin[]> {
       lng: Number(r.lng),
       category: r.category,
       imageUrl: r.image_url ?? null,
-      createdAt: new Date(r.created_at).toISOString(),
-      updatedAt: new Date(r.updated_at).toISOString(),
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
       version: Number(r.version),
       visitsCount: Number(r.visits_count ?? 0),
     }));
@@ -230,7 +203,6 @@ export async function listPins(category?: string): Promise<DBPin[]> {
 export async function createPin(input: { title: string; description?: string | null; lat: number; lng: number; category: string; imageUrl?: string | null; }): Promise<DBPin> {
   const { title, description, lat, lng, category, imageUrl } = input;
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     const rows = await sql`
       INSERT INTO pins (title, description, lat, lng, category, image_url)
       VALUES (${title}, ${description ?? null}, ${lat}, ${lng}, ${category}, ${imageUrl ?? null})
@@ -245,8 +217,8 @@ export async function createPin(input: { title: string; description?: string | n
       lng: Number(r.lng),
       category: r.category,
       imageUrl: r.image_url ?? null,
-      createdAt: new Date(r.created_at).toISOString(),
-      updatedAt: new Date(r.updated_at).toISOString(),
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
       version: Number(r.version),
       visitsCount: 0,
     };
@@ -276,7 +248,6 @@ export async function createPin(input: { title: string; description?: string | n
 
 export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits: DBVisit[] } | null> {
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     const pinRes = await sql`SELECT * FROM pins WHERE id = ${id}`;
     if (pinRes.length === 0) return null;
     const p: any = pinRes[0];
@@ -290,8 +261,8 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
         lng: Number(p.lng),
         category: p.category,
         imageUrl: p.image_url ?? null,
-        createdAt: new Date(p.created_at).toISOString(),
-        updatedAt: new Date(p.updated_at).toISOString(),
+        createdAt: new Date(p.created_at).toISOString?.() ?? String(p.created_at),
+        updatedAt: new Date(p.updated_at).toISOString?.() ?? String(p.updated_at),
         version: Number(p.version),
       },
       visits: visitsRes.map((v: any) => ({
@@ -300,7 +271,7 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
         name: v.name,
         note: v.note ?? null,
         imageUrl: v.image_url ?? null,
-        visitedAt: new Date(v.visited_at).toISOString(),
+        visitedAt: new Date(v.visited_at).toISOString?.() ?? String(v.visited_at),
       })),
     };
   } else {
@@ -346,10 +317,9 @@ export async function getPinWithVisits(id: number): Promise<{ pin: DBPin; visits
 export async function updatePin(id: number, input: { title: string; description?: string | null; category: string; imageUrl?: string | null; expectedUpdatedAt?: string | null }): Promise<DBPin | { conflict: true; serverUpdatedAt: string; }> {
   const { title, description, category, imageUrl, expectedUpdatedAt } = input;
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     const current = await sql`SELECT updated_at FROM pins WHERE id = ${id}`;
     if (current.length === 0) throw new Error("Not found");
-    const serverUpdatedAt = new Date(current[0].updated_at).toISOString();
+    const serverUpdatedAt = new Date(current[0].updated_at).toISOString?.() ?? String(current[0].updated_at);
     if (expectedUpdatedAt && expectedUpdatedAt !== serverUpdatedAt) {
       return { conflict: true as const, serverUpdatedAt };
     }
@@ -368,8 +338,8 @@ export async function updatePin(id: number, input: { title: string; description?
       lng: Number(r.lng),
       category: r.category,
       imageUrl: r.image_url ?? null,
-      createdAt: new Date(r.created_at).toISOString(),
-      updatedAt: new Date(r.updated_at).toISOString(),
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
       version: Number(r.version),
     };
   } else {
@@ -411,7 +381,6 @@ export async function updatePin(id: number, input: { title: string; description?
 
 export async function deletePin(id: number): Promise<void> {
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     await sql`DELETE FROM pins WHERE id = ${id}`;
   } else {
     const { getSqlite } = await import("./sqlite");
@@ -427,7 +396,6 @@ export type Category = { name: string; color: string };
 
 export async function listCategories(): Promise<Category[]> {
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     const rows = await sql`SELECT name, color FROM categories ORDER BY name ASC`;
     return rows.map((r: any) => ({ name: r.name as string, color: r.color as string }));
   } else {
@@ -443,7 +411,6 @@ export async function listCategories(): Promise<Category[]> {
 
 export async function createCategory(name: string, color: string): Promise<Category> {
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     await sql`INSERT INTO categories(name, color) VALUES (${name}, ${color}) ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color`;
     return { name, color };
   } else {
@@ -460,7 +427,6 @@ export async function createCategory(name: string, color: string): Promise<Categ
 export async function addVisit(pinId: number, input: { name: string; note?: string | null; imageUrl?: string | null; }): Promise<DBVisit> {
   const { name, note, imageUrl } = input;
   if (isPostgresSelected()) {
-    const sql = getPostgresConnection();
     const exists = await sql`SELECT id FROM pins WHERE id = ${pinId}`;
     if (exists.length === 0) throw new Error("Not found");
     const res = await sql`INSERT INTO visits (pin_id, name, note, image_url) VALUES (${pinId}, ${name}, ${note ?? null}, ${imageUrl ?? null}) RETURNING id, pin_id, name, note, image_url, visited_at`;
@@ -472,7 +438,7 @@ export async function addVisit(pinId: number, input: { name: string; note?: stri
       name: v.name,
       note: v.note ?? null,
       imageUrl: v.image_url ?? null,
-      visitedAt: new Date(v.visited_at).toISOString()
+      visitedAt: new Date(v.visited_at).toISOString?.() ?? String(v.visited_at)
     };
   } else {
     const { getSqlite } = await import("./sqlite");
@@ -505,10 +471,3 @@ export async function addVisit(pinId: number, input: { name: string; note?: stri
   }
 }
 
-// Optional: Add cleanup function for graceful shutdown
-export async function closeConnection() {
-  if (sql) {
-    await sql.end();
-    sql = null;
-  }
-}
