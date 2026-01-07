@@ -6,6 +6,15 @@ import MapView from "@/components/MapView";
 import { login, logout, checkAuth, getCurrentUser, initDatabase } from "./actions/auth";
 import { useRouter } from "next/navigation";
 
+export default async function StatsPage() {
+  const isAuthenticated = await checkAuth();
+  
+  if (!isAuthenticated) {
+    redirect("/");
+  }
+
+}
+
 export default function Page() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
