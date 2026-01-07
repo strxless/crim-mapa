@@ -5,7 +5,6 @@ export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { ensureSchema, getAllPinsWithVisits } from "@/lib/store";
 
-export const maxDuration = 60; // 60 seconds timeout
 
 export async function GET() {
   try {
