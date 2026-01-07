@@ -1,29 +1,16 @@
 // app/api/pins/export/route.ts
 import { NextResponse } from "next/server";
-import { ensureSchema, listPins, getPinWithVisits } from "@/lib/store";
+import { ensureSchema, getAllPinsWithVisits } from "@/lib/store";
+
+export const maxDuration = 60; // 60 seconds timeout
 
 export async function GET() {
   try {
     await ensureSchema();
+    const pinsWithVisits = await getAllPinsWithVisits();
     
-    const pins = await listPins();
-    
-    const limitedPins = pins.slice(0, 100);
-    
-    const pinsWithVisits = await Promise.all(
-      limitedPins.map(async (pin) => {
-        const data = await getPinWithVisits(pin.id);
-        return {
-          ...pin,
-          visits: data?.visits || []
-        };
-      })
-    );
-
     return NextResponse.json({
       pins: pinsWithVisits,
-      total: pins.length,
-      exported: pinsWithVisits.length,
       exportedAt: new Date().toISOString()
     });
   } catch (error) {

@@ -16,6 +16,85 @@ const sql = postgres(process.env.POSTGRES_URL!, {
 
 // - If process.env.DB_PROVIDER === 'postgres' or Vercel Postgres env vars exist -> use Postgres
 // - Otherwise, use SQLite at SQLITE_PATH (default ./data.sqlite)
+//
+export async function getAllPinsWithVisits(): Promise<Array<DBPin & { visits: DBVisit[] }>> {
+  if (isPostgresSelected()) {
+    // Single query for all pins
+    const pinsResult = await sql`SELECT * FROM pins ORDER BY updated_at DESC`;
+    
+    // Single query for all visits
+    const visitsResult = await sql`SELECT * FROM visits ORDER BY pin_id, visited_at DESC`;
+    
+    // Group visits by pin_id in memory (fast)
+    const visitsByPin = new Map<number, DBVisit[]>();
+    visitsResult.forEach((v: any) => {
+      const pinId = Number(v.pin_id);
+      if (!visitsByPin.has(pinId)) {
+        visitsByPin.set(pinId, []);
+      }
+      visitsByPin.get(pinId)!.push({
+        id: Number(v.id),
+        pinId: Number(v.pin_id),
+        name: v.name,
+        note: v.note ?? null,
+        imageUrl: v.image_url ?? null,
+        visitedAt: new Date(v.visited_at).toISOString?.() ?? String(v.visited_at),
+      });
+    });
+    
+    // Combine
+    return pinsResult.map((p: any) => ({
+      id: Number(p.id),
+      title: p.title,
+      description: p.description ?? null,
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      category: p.category,
+      imageUrl: p.image_url ?? null,
+      createdAt: new Date(p.created_at).toISOString?.() ?? String(p.created_at),
+      updatedAt: new Date(p.updated_at).toISOString?.() ?? String(p.updated_at),
+      version: Number(p.version),
+      visitsCount: visitsByPin.get(Number(p.id))?.length || 0,
+      visits: visitsByPin.get(Number(p.id)) || []
+    }));
+  } else {
+    const { getSqlite } = await import("./sqlite");
+    const db = await getSqlite();
+    const pinsResult = await db.execute(`SELECT * FROM pins ORDER BY datetime(updated_at) DESC`);
+    const visitsResult = await db.execute(`SELECT * FROM visits ORDER BY pin_id, datetime(visited_at) DESC`);
+    
+    const visitsByPin = new Map<number, DBVisit[]>();
+    visitsResult.rows.forEach((v: any) => {
+      const pinId = Number(v.pin_id);
+      if (!visitsByPin.has(pinId)) {
+        visitsByPin.set(pinId, []);
+      }
+      visitsByPin.get(pinId)!.push({
+        id: Number(v.id),
+        pinId: Number(v.pin_id),
+        name: String(v.name),
+        note: v.note ? String(v.note) : null,
+        imageUrl: v.image_url ? String(v.image_url) : null,
+        visitedAt: String(v.visited_at),
+      });
+    });
+    
+    return pinsResult.rows.map((p: any) => ({
+      id: Number(p.id),
+      title: String(p.title),
+      description: p.description ? String(p.description) : null,
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      category: String(p.category),
+      imageUrl: p.image_url ? String(p.image_url) : null,
+      createdAt: String(p.created_at),
+      updatedAt: String(p.updated_at),
+      version: Number(p.version),
+      visitsCount: visitsByPin.get(Number(p.id))?.length || 0,
+      visits: visitsByPin.get(Number(p.id)) || []
+    }));
+  }
+}
 
 export type DBPin = {
   id: number;
