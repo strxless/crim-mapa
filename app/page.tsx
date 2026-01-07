@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { useState, useTransition, useEffect } from "react";
 import MapView from "@/components/MapView";

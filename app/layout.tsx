@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 export const metadata = {
   title: "CRiIM Mapa",
   description: "Prosta, współdzielona mapa pinezek z historią odwiedzin",

@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = 'force-dynamic';
+
 
 import { useState, useTransition, useEffect } from "react";
 import { changePassword, getCurrentUser, logout } from "@/app/actions/auth";
