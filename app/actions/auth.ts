@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import postgres from "postgres";
+import Database from "better-sqlite3";
 
 const MAX_ATTEMPTS = 3;
 const LOCK_DURATION = 24 * 60 * 60 * 1000;
@@ -22,6 +23,18 @@ interface User {
 }
 
 const attemptStore = new Map<string, AttemptData>();
+
+// Check if we should use SQLite (localhost)
+const USE_SQLITE = process.env.USE_SQLITE === "true";
+
+let sqliteDb: Database.Database | null = null;
+
+function getSQLiteDB() {
+  if (!sqliteDb) {
+    sqliteDb = new Database("./data/auth.db");
+  }
+  return sqliteDb;
+}
 
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
@@ -53,38 +66,71 @@ function getDB() {
 }
 
 export async function initDatabase() {
-  const sql = getDB();
+  if (USE_SQLITE) {
+    const db = getSQLiteDB();
+    
+    db.exec(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      must_change_password INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_login TEXT
+    )`);
 
-  await sql`CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    must_change_password BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_login TIMESTAMPTZ
-  )`;
+    const count = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
 
-  const result = await sql`SELECT COUNT(*) as count FROM users`;
-  const count = Number(result[0].count);
+    if (count.count === 0) {
+      const defaultPassword = hashPassword("mopsgdynia");
+      const users = [
+        "d.zablocki@mopsgdynia.pl",
+        "j.nowicka@mopsgdynia.pl",
+        "m.adamski@mopsgdynia.pl",
+        "l.filc@mopsgdynia.pl",
+        "m.walenciej@mopsgdynia.pl",
+        "p.niemczyk@mopsgdynia.pl",
+        "m.kowalewski@mopsgdynia.pl"
+      ];
 
-  if (count === 0) {
-    const defaultPassword = hashPassword("mopsgdynia");
-    const users = [
-      "d.zablocki@mopsgdynia.pl",
-      "j.nowicka@mopsgdynia.pl",
-      "m.adamski@mopsgdynia.pl",
-      "l.filc@mopsgdynia.pl",
-      "m.walenciej@mopsgdynia.pl",
-      "p.niemczyk@mopsgdynia.pl",
-      "m.kowalewski@mopsgdynia.pl"
-    ];
-
-    for (const email of users) {
-      await sql`INSERT INTO users (email, password_hash, must_change_password) VALUES (${email}, ${defaultPassword}, true)`;
+      const insert = db.prepare("INSERT INTO users (email, password_hash, must_change_password) VALUES (?, ?, 1)");
+      for (const email of users) {
+        insert.run(email, defaultPassword);
+      }
     }
-  }
+  } else {
+    const sql = getDB();
 
-  await sql.end();
+    await sql`CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      must_change_password BOOLEAN DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      last_login TIMESTAMPTZ
+    )`;
+
+    const result = await sql`SELECT COUNT(*) as count FROM users`;
+    const count = Number(result[0].count);
+
+    if (count === 0) {
+      const defaultPassword = hashPassword("mopsgdynia");
+      const users = [
+        "d.zablocki@mopsgdynia.pl",
+        "j.nowicka@mopsgdynia.pl",
+        "m.adamski@mopsgdynia.pl",
+        "l.filc@mopsgdynia.pl",
+        "m.walenciej@mopsgdynia.pl",
+        "p.niemczyk@mopsgdynia.pl",
+        "m.kowalewski@mopsgdynia.pl"
+      ];
+
+      for (const email of users) {
+        await sql`INSERT INTO users (email, password_hash, must_change_password) VALUES (${email}, ${defaultPassword}, true)`;
+      }
+    }
+
+    await sql.end();
+  }
 }
 
 export async function login(formData: FormData) {
@@ -116,14 +162,21 @@ export async function login(formData: FormData) {
     attemptStore.delete(clientId);
   }
 
-  const sql = getDB();
   const passwordHash = hashPassword(password);
+  let user: User | null = null;
 
-  const result = await sql`SELECT * FROM users WHERE email = ${email} AND password_hash = ${passwordHash}`;
+  if (USE_SQLITE) {
+    const db = getSQLiteDB();
+    const result = db.prepare("SELECT * FROM users WHERE email = ? AND password_hash = ?").get(email, passwordHash) as User | undefined;
+    user = result || null;
+  } else {
+    const sql = getDB();
+    const result = await sql`SELECT * FROM users WHERE email = ${email} AND password_hash = ${passwordHash}`;
+    await sql.end();
+    user = result.length > 0 ? (result[0] as unknown as User) : null;
+  }
 
-  await sql.end();
-
-  if (result.length === 0) {
+  if (!user) {
     const currentAttempts = attemptData?.count || 0;
     const newAttempts = currentAttempts + 1;
 
@@ -149,12 +202,16 @@ export async function login(formData: FormData) {
     };
   }
 
-  const user = result[0] as unknown as User;
   attemptStore.delete(clientId);
 
-  const sql2 = getDB();
-  await sql2`UPDATE users SET last_login = now() WHERE id = ${user.id}`;
-  await sql2.end();
+  if (USE_SQLITE) {
+    const db = getSQLiteDB();
+    db.prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+  } else {
+    const sql2 = getDB();
+    await sql2`UPDATE users SET last_login = now() WHERE id = ${user.id}`;
+    await sql2.end();
+  }
 
   const cookieStore = cookies();
   cookieStore.set("auth_session", JSON.stringify({
@@ -207,22 +264,37 @@ export async function changePassword(formData: FormData) {
     };
   }
 
-  const sql = getDB();
   const currentPasswordHash = hashPassword(currentPassword);
 
-  const result = await sql`SELECT * FROM users WHERE id = ${session.userId} AND password_hash = ${currentPasswordHash}`;
+  if (USE_SQLITE) {
+    const db = getSQLiteDB();
+    const result = db.prepare("SELECT * FROM users WHERE id = ? AND password_hash = ?").get(session.userId, currentPasswordHash) as User | undefined;
 
-  if (result.length === 0) {
+    if (!result) {
+      return {
+        success: false,
+        error: "Nieprawidłowe obecne hasło."
+      };
+    }
+
+    const newPasswordHash = hashPassword(newPassword);
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?").run(newPasswordHash, session.userId);
+  } else {
+    const sql = getDB();
+    const result = await sql`SELECT * FROM users WHERE id = ${session.userId} AND password_hash = ${currentPasswordHash}`;
+
+    if (result.length === 0) {
+      await sql.end();
+      return {
+        success: false,
+        error: "Nieprawidłowe obecne hasło."
+      };
+    }
+
+    const newPasswordHash = hashPassword(newPassword);
+    await sql`UPDATE users SET password_hash = ${newPasswordHash}, must_change_password = false WHERE id = ${session.userId}`;
     await sql.end();
-    return {
-      success: false,
-      error: "Nieprawidłowe obecne hasło."
-    };
   }
-
-  const newPasswordHash = hashPassword(newPassword);
-  await sql`UPDATE users SET password_hash = ${newPasswordHash}, must_change_password = false WHERE id = ${session.userId}`;
-  await sql.end();
 
   return {
     success: true,
@@ -257,11 +329,16 @@ export async function getCurrentUser() {
   const session = await getSession();
   if (!session) return null;
 
-  const sql = getDB();
-  const result = await sql`SELECT id, email, must_change_password, last_login FROM users WHERE id = ${session.userId}`;
-  await sql.end();
+  if (USE_SQLITE) {
+    const db = getSQLiteDB();
+    const result = db.prepare("SELECT id, email, must_change_password, last_login FROM users WHERE id = ?").get(session.userId) as User | undefined;
+    return result || null;
+  } else {
+    const sql = getDB();
+    const result = await sql`SELECT id, email, must_change_password, last_login FROM users WHERE id = ${session.userId}`;
+    await sql.end();
 
-  if (result.length === 0) return null;
-
-  return result[0] as unknown as Omit<User, 'password_hash'>;
+    if (result.length === 0) return null;
+    return result[0] as unknown as Omit<User, 'password_hash'>;
+  }
 }

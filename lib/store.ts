@@ -1,10 +1,17 @@
 import postgres from "postgres"
 
+console.log('Database provider check:', {
+  USE_SQLITE: process.env.USE_SQLITE,
+  HAS_POSTGRES_URL: !!process.env.POSTGRES_URL,
+  WILL_USE: process.env.USE_SQLITE === "true" ? "SQLite" : "PostgreSQL"
+});
+
 const sql = postgres(process.env.POSTGRES_URL!, {
   max: 1,
   idle_timeout: 20,
   connect_timeout: 10,
 });
+
 
 // - If process.env.DB_PROVIDER === 'postgres' or Vercel Postgres env vars exist -> use Postgres
 // - Otherwise, use SQLite at SQLITE_PATH (default ./data.sqlite)
