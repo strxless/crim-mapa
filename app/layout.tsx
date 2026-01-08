@@ -34,8 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 CRiIM Mapa
               </Link>
               <div className="flex items-center gap-3">
-                {/* Force show for testing */}
-                {isAuthenticated ? (
+                {isAuthenticated && (
                   <Link
                     href="/stats"
                     className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5"
@@ -46,8 +45,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <span className="hidden sm:inline">Statystyki</span>
                     <span className="sm:hidden">Stats</span>
                   </Link>
-                ) : (
-                  <span className="text-xs text-red-500">Not logged in</span>
                 )}
                 <a className="text-xs text-[var(--muted)] hover:text-[var(--fg)] transition-colors" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OSM</a>
               </div>
