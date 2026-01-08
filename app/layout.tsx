@@ -1,15 +1,18 @@
-import { checkAuth } from "./actions/auth";
+import { cookies } from "next/headers";
+import "./globals.css";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
   title: "CRiIM Mapa",
   description: "Prosta, współdzielona mapa pinezek z historią odwiedzin",
 };
-import "./globals.css";
-import Link from "next/link";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = await checkAuth();
+  // Check auth directly from cookies
+  const cookieStore = cookies();
+  const sessionCookie = cookieStore.get("auth_session")?.value;
+  const isAuthenticated = !!sessionCookie;
 
   return (
     <html lang="pl">
