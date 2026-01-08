@@ -6,15 +6,6 @@ import MapView from "@/components/MapView";
 import { login, logout, checkAuth, getCurrentUser, initDatabase } from "./actions/auth";
 import { useRouter } from "next/navigation";
 
-export default async function StatsPage() {
-  const isAuthenticated = await checkAuth();
-  
-  if (!isAuthenticated) {
-    redirect("/");
-  }
-
-}
-
 export default function Page() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +35,7 @@ export default function Page() {
         setIsAuthenticated(authenticated);
       } catch (error) {
         console.error("Auth check failed:", error);
-        setIsAuthenticated(false); // Fallback to login on error
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +104,6 @@ export default function Page() {
               Wymagane uwierzytelnienie
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email field */}
               <div>
                 <label
                   htmlFor="email"
@@ -137,7 +127,6 @@ export default function Page() {
                 />
               </div>
 
-              {/* Password field */}
               <div>
                 <label
                   htmlFor="password"
@@ -181,7 +170,6 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Error message */}
               {error && (
                 <div
                   className={`text-sm ${isLocked ? "text-red-400 font-semibold" : "text-red-400"}`}
@@ -190,14 +178,12 @@ export default function Page() {
                 </div>
               )}
 
-              {/* Attempts left */}
               {!isLocked && attemptsLeft < 3 && !error && (
                 <div className="text-gray-400 text-sm">
                   Pozostało prób: {attemptsLeft}
                 </div>
               )}
 
-              {/* Submit button */}
               <button
                 type="submit"
                 disabled={isLocked || isPending}
@@ -213,7 +199,6 @@ export default function Page() {
                     : "Przejdź do mapy"}
               </button>
             </form>
-
           </div>
         </div>
       </div>

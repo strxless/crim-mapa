@@ -75,6 +75,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
     }
   };
 
+
   const exportToExcel = async () => {
     setIsExporting(true);
     try {
@@ -83,52 +84,191 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
       const wb = XLSX.utils.book_new();
 
-      const pinsData = data.pins.map((pin: Pin) => ({
-        'ID': pin.id,
-        'Tytuł': pin.title,
-        'Opis': pin.description || '',
-        'Kategoria': pin.category,
-        'Liczba wizyt': pin.visitsCount || 0,
-        'Data utworzenia': new Date(pin.createdAt).toLocaleString('pl-PL'),
-        'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleString('pl-PL'),
-      }));
-      const ws1 = XLSX.utils.json_to_sheet(pinsData);
-      XLSX.utils.book_append_sheet(wb, ws1, 'Pinezki');
+      // ========== MAIN SHEET: Complete Pin Overview with All Visits ==========
+      const mainData: any[] = [];
+      data.pins.forEach((pin: Pin) => {
+        if (!pin.visits || pin.visits.length === 0) {
+          // Pin without visits - show it once
+          mainData.push({
+            'Tytuł pinezki': pin.title,
+            'Kategoria': pin.category,
+            'Opis': pin.description || '',
+            'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
+            'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL'),
+            'Liczba wizyt': 0,
+            'Odwiedzający': '',
+            'Data wizyty': '',
+            'Notatka z wizyty': ''
+          });
+        } else {
+          // Pin with visits - show each visit as a row
+          pin.visits.forEach((visit: Visit, index: number) => {
+            mainData.push({
+              'Tytuł pinezki': pin.title,
+              'Kategoria': pin.category,
+              'Opis': pin.description || '',
+              'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
+              'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL'),
+              'Liczba wizyt': pin.visitsCount || pin.visits.length,
+              'Odwiedzający': visit.name,
+              'Data wizyty': new Date(visit.visitedAt).toLocaleDateString('pl-PL'),
+              'Notatka z wizyty': visit.note || ''
+            });
+          });
+        }
+      });
 
+      const ws1 = XLSX.utils.json_to_sheet(mainData);
+      
+      // Set column widths for better readability
+      ws1['!cols'] = [
+        { wch: 35 }, // Tytuł pinezki
+        { wch: 20 }, // Kategoria
+        { wch: 40 }, // Opis
+        { wch: 18 }, // Data utworzenia
+        { wch: 18 }, // Ostatnia aktualizacja
+        { wch: 12 }, // Liczba wizyt
+        { wch: 25 }, // Odwiedzający
+        { wch: 18 }, // Data wizyty
+        { wch: 50 }  // Notatka z wizyty
+      ];
+
+      // Add auto-filter to all columns
+      if (mainData.length > 0) {
+        ws1['!autofilter'] = { ref: `A1:I${mainData.length + 1}` };
+      }
+
+      // Style header row
+      const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1'];
+      headerCells.forEach(cell => {
+        if (ws1[cell]) {
+          ws1[cell].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "4472C4" } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true },
+            border: {
+              top: { style: "thin", color: { rgb: "000000" } },
+              bottom: { style: "thin", color: { rgb: "000000" } },
+              left: { style: "thin", color: { rgb: "000000" } },
+              right: { style: "thin", color: { rgb: "000000" } }
+            }
+          };
+        }
+      });
+
+      // Freeze header row
+      ws1['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'Baza Pinezek');
+
+      // ========== SUMMARY SHEET: Pins Only (No Visits) ==========
+      const summaryData = data.pins.map((pin: Pin) => ({
+        'Tytuł': pin.title,
+        'Kategoria': pin.category,
+        'Opis': pin.description || '',
+        'Liczba wizyt': pin.visitsCount || 0,
+        'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
+        'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL')
+      }));
+
+      const ws2 = XLSX.utils.json_to_sheet(summaryData);
+      ws2['!cols'] = [
+        { wch: 35 }, // Tytuł
+        { wch: 20 }, // Kategoria
+        { wch: 45 }, // Opis
+        { wch: 12 }, // Liczba wizyt
+        { wch: 18 }, // Data utworzenia
+        { wch: 18 }  // Ostatnia aktualizacja
+      ];
+
+      if (summaryData.length > 0) {
+        ws2['!autofilter'] = { ref: `A1:F${summaryData.length + 1}` };
+      }
+
+      const summaryHeaders = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1'];
+      summaryHeaders.forEach(cell => {
+        if (ws2[cell]) {
+          ws2[cell].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "70AD47" } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true }
+          };
+        }
+      });
+
+      ws2['!freeze'] = { xSplit: 0, ySplit: 1 };
+      XLSX.utils.book_append_sheet(wb, ws2, 'Podsumowanie Pinezek');
+
+      // ========== VISITS SHEET: All Visits ==========
       const visitsData: any[] = [];
       data.pins.forEach((pin: Pin) => {
         pin.visits?.forEach((visit: Visit) => {
           visitsData.push({
-            'ID Wizyty': visit.id,
-            'ID Pinezki': pin.id,
             'Tytuł pinezki': pin.title,
             'Kategoria': pin.category,
             'Odwiedzający': visit.name,
-            'Notatka': visit.note || '',
-            'Data wizyty': new Date(visit.visitedAt).toLocaleString('pl-PL'),
+            'Data wizyty': new Date(visit.visitedAt).toLocaleDateString('pl-PL') + ' ' + new Date(visit.visitedAt).toLocaleTimeString('pl-PL'),
+            'Notatka': visit.note || ''
           });
         });
       });
-      const ws2 = XLSX.utils.json_to_sheet(visitsData);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Wizyty');
 
-      const categoryStats = Object.entries(filteredStats.categories).map(([name, count]) => ({
-        'Kategoria': name,
-        'Liczba pinezek': count,
-        'Procent': ((count / filteredStats.total) * 100).toFixed(2) + '%'
-      }));
-      const ws3 = XLSX.utils.json_to_sheet(categoryStats);
-      XLSX.utils.book_append_sheet(wb, ws3, 'Statystyki kategorii');
+      const ws3 = XLSX.utils.json_to_sheet(visitsData);
+      ws3['!cols'] = [
+        { wch: 35 }, // Tytuł pinezki
+        { wch: 20 }, // Kategoria
+        { wch: 25 }, // Odwiedzający
+        { wch: 22 }, // Data wizyty
+        { wch: 60 }  // Notatka
+      ];
 
-      const dailyStats = filteredStats.daily.map(day => ({
-        'Data': day.date,
-        'Nowe piny': day.count,
-        'Wizyty': day.updates || 0,
-        'Suma kumulatywna': day.cumulative,
-        'Aktywność dzienna': day.count + (day.updates || 0),
-      }));
-      const ws4 = XLSX.utils.json_to_sheet(dailyStats);
-      XLSX.utils.book_append_sheet(wb, ws4, 'Statystyki dzienne');
+      if (visitsData.length > 0) {
+        ws3['!autofilter'] = { ref: `A1:E${visitsData.length + 1}` };
+      }
+
+      const visitHeaders = ['A1', 'B1', 'C1', 'D1', 'E1'];
+      visitHeaders.forEach(cell => {
+        if (ws3[cell]) {
+          ws3[cell].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "FFC000" } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true }
+          };
+        }
+      });
+
+      ws3['!freeze'] = { xSplit: 0, ySplit: 1 };
+      XLSX.utils.book_append_sheet(wb, ws3, 'Wszystkie Wizyty');
+
+      // ========== STATS SHEET: Category Statistics ==========
+      const categoryStats = Object.entries(filteredStats.categories)
+        .map(([name, count]) => ({
+          'Kategoria': name,
+          'Liczba pinezek': count,
+          'Procent': ((count / filteredStats.total) * 100).toFixed(2) + '%'
+        }))
+        .sort((a, b) => b['Liczba pinezek'] - a['Liczba pinezek']);
+
+      const ws4 = XLSX.utils.json_to_sheet(categoryStats);
+      ws4['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 12 }];
+
+      if (categoryStats.length > 0) {
+        ws4['!autofilter'] = { ref: `A1:C${categoryStats.length + 1}` };
+      }
+
+      const statHeaders = ['A1', 'B1', 'C1'];
+      statHeaders.forEach(cell => {
+        if (ws4[cell]) {
+          ws4[cell].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "9966FF" } },
+            alignment: { horizontal: "center", vertical: "center" }
+          };
+        }
+      });
+
+      ws4['!freeze'] = { xSplit: 0, ySplit: 1 };
+      XLSX.utils.book_append_sheet(wb, ws4, 'Statystyki Kategorii');
 
       const fileName = `CRiIM_Mapa_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
