@@ -64,6 +64,7 @@ export default function Page() {
           setIsAuthenticated(true);
           setEmail("");
           setPassword("");
+          router.refresh();
         }
       } else {
         setError(result.error || "Błąd logowania");
@@ -78,6 +79,7 @@ export default function Page() {
     startTransition(async () => {
       await logout();
       setIsAuthenticated(false);
+      router.refresh();
     });
   };
 
