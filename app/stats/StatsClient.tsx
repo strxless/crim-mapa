@@ -109,7 +109,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               'Opis': pin.description || '',
               'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
               'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL'),
-              'Liczba wizyt': pin.visitsCount || pin.visits.length,
+              'Liczba wizyt': pin.visitsCount || pin.visits?.length || 0,
               'Odwiedzający': visit.name,
               'Data wizyty': new Date(visit.visitedAt).toLocaleDateString('pl-PL'),
               'Notatka z wizyty': visit.note || ''
