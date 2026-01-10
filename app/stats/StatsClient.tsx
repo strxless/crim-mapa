@@ -47,6 +47,9 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const refreshStats = async () => {
     setIsLoading(true);
@@ -75,7 +78,6 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
     }
   };
 
-
   const exportToExcel = async () => {
     setIsExporting(true);
     try {
@@ -88,7 +90,6 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       const mainData: any[] = [];
       data.pins.forEach((pin: Pin) => {
         if (!pin.visits || pin.visits.length === 0) {
-          // Pin without visits - show it once
           mainData.push({
             'Tytuł pinezki': pin.title,
             'Kategoria': pin.category,
@@ -101,7 +102,6 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
             'Notatka z wizyty': ''
           });
         } else {
-          // Pin with visits - show each visit as a row
           pin.visits.forEach((visit: Visit, index: number) => {
             mainData.push({
               'Tytuł pinezki': pin.title,
@@ -119,26 +119,15 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       });
 
       const ws1 = XLSX.utils.json_to_sheet(mainData);
-      
-      // Set column widths for better readability
       ws1['!cols'] = [
-        { wch: 35 }, // Tytuł pinezki
-        { wch: 20 }, // Kategoria
-        { wch: 40 }, // Opis
-        { wch: 18 }, // Data utworzenia
-        { wch: 18 }, // Ostatnia aktualizacja
-        { wch: 12 }, // Liczba wizyt
-        { wch: 25 }, // Odwiedzający
-        { wch: 18 }, // Data wizyty
-        { wch: 50 }  // Notatka z wizyty
+        { wch: 35 }, { wch: 20 }, { wch: 40 }, { wch: 18 }, { wch: 18 },
+        { wch: 12 }, { wch: 25 }, { wch: 18 }, { wch: 50 }
       ];
 
-      // Add auto-filter to all columns
       if (mainData.length > 0) {
         ws1['!autofilter'] = { ref: `A1:I${mainData.length + 1}` };
       }
 
-      // Style header row
       const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1'];
       headerCells.forEach(cell => {
         if (ws1[cell]) {
@@ -156,12 +145,10 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
         }
       });
 
-      // Freeze header row
       ws1['!freeze'] = { xSplit: 0, ySplit: 1 };
-
       XLSX.utils.book_append_sheet(wb, ws1, 'Baza Pinezek');
 
-      // ========== SUMMARY SHEET: Pins Only (No Visits) ==========
+      // ========== SUMMARY SHEET ==========
       const summaryData = data.pins.map((pin: Pin) => ({
         'Tytuł': pin.title,
         'Kategoria': pin.category,
@@ -172,14 +159,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       }));
 
       const ws2 = XLSX.utils.json_to_sheet(summaryData);
-      ws2['!cols'] = [
-        { wch: 35 }, // Tytuł
-        { wch: 20 }, // Kategoria
-        { wch: 45 }, // Opis
-        { wch: 12 }, // Liczba wizyt
-        { wch: 18 }, // Data utworzenia
-        { wch: 18 }  // Ostatnia aktualizacja
-      ];
+      ws2['!cols'] = [{ wch: 35 }, { wch: 20 }, { wch: 45 }, { wch: 12 }, { wch: 18 }, { wch: 18 }];
 
       if (summaryData.length > 0) {
         ws2['!autofilter'] = { ref: `A1:F${summaryData.length + 1}` };
@@ -199,7 +179,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       ws2['!freeze'] = { xSplit: 0, ySplit: 1 };
       XLSX.utils.book_append_sheet(wb, ws2, 'Podsumowanie Pinezek');
 
-      // ========== VISITS SHEET: All Visits ==========
+      // ========== VISITS SHEET ==========
       const visitsData: any[] = [];
       data.pins.forEach((pin: Pin) => {
         pin.visits?.forEach((visit: Visit) => {
@@ -214,13 +194,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       });
 
       const ws3 = XLSX.utils.json_to_sheet(visitsData);
-      ws3['!cols'] = [
-        { wch: 35 }, // Tytuł pinezki
-        { wch: 20 }, // Kategoria
-        { wch: 25 }, // Odwiedzający
-        { wch: 22 }, // Data wizyty
-        { wch: 60 }  // Notatka
-      ];
+      ws3['!cols'] = [{ wch: 35 }, { wch: 20 }, { wch: 25 }, { wch: 22 }, { wch: 60 }];
 
       if (visitsData.length > 0) {
         ws3['!autofilter'] = { ref: `A1:E${visitsData.length + 1}` };
@@ -240,7 +214,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       ws3['!freeze'] = { xSplit: 0, ySplit: 1 };
       XLSX.utils.book_append_sheet(wb, ws3, 'Wszystkie Wizyty');
 
-      // ========== STATS SHEET: Category Statistics ==========
+      // ========== STATS SHEET ==========
       const categoryStats = Object.entries(filteredStats.categories)
         .map(([name, count]) => ({
           'Kategoria': name,
@@ -365,6 +339,64 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
     );
   };
 
+  // Calendar helpers
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    return { daysInMonth, startingDayOfWeek, year, month };
+  };
+
+  const getActivityForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    const dayData = currentStats.daily.find(d => d.date === dateStr);
+    
+    if (!dayData) return { pins: [], visits: [], created: 0, visited: 0 };
+    
+    const dayPins = pinsData.filter(pin => {
+      const createdDate = new Date(pin.createdAt).toISOString().split('T')[0];
+      return createdDate === dateStr;
+    });
+    
+    const dayVisits: Array<{pin: Pin, visit: Visit}> = [];
+    pinsData.forEach(pin => {
+      pin.visits?.forEach(visit => {
+        const visitDate = new Date(visit.visitedAt).toISOString().split('T')[0];
+        if (visitDate === dateStr) {
+          dayVisits.push({ pin, visit });
+        }
+      });
+    });
+    
+    return {
+      pins: dayPins,
+      visits: dayVisits,
+      created: dayData.count,
+      visited: dayData.updates || 0
+    };
+  };
+
+  const getActivityLevel = (created: number, visited: number) => {
+    const total = created + visited;
+    if (total === 0) return 'bg-slate-50';
+    if (total <= 2) return 'bg-green-100';
+    if (total <= 5) return 'bg-green-300';
+    if (total <= 10) return 'bg-green-500';
+    return 'bg-green-700';
+  };
+
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
+
   const categoryData = Object.entries(filteredStats.categories).map(([name, value]) => ({
     name,
     value
@@ -395,35 +427,74 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
             <p className="text-xs sm:text-sm md:text-base text-slate-600">Kompleksowa analiza pinezek i aktywności</p>
           </div>
           <div className="flex flex-col gap-2">
-            <button
-              onClick={() => showPinsData ? setShowPinsData(false) : loadPinsData()}
-              disabled={loadingPins}
-              className="w-full px-4 py-2.5 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
-            >
-              {loadingPins ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Ładowanie...
-                </>
-              ) : showPinsData ? (
-                <>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Pokaż statystyki
-                </>
-              ) : (
-                <>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Pokaż dane pinów
-                </>
-              )}
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  if (showCalendar) {
+                    setShowCalendar(false);
+                  } else {
+                    setShowPinsData(false);
+                    setShowCalendar(true);
+                    if (pinsData.length === 0) loadPinsData();
+                  }
+                }}
+                disabled={loadingPins}
+                className="px-4 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                {showCalendar ? (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Statystyki
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Kalendarz
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (showPinsData) {
+                    setShowPinsData(false);
+                  } else {
+                    setShowCalendar(false);
+                    loadPinsData();
+                  }
+                }}
+                disabled={loadingPins}
+                className="px-4 py-2.5 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                {loadingPins ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Ładowanie...
+                  </>
+                ) : showPinsData ? (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Statystyki
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Dane pinów
+                  </>
+                )}
+              </button>
+            </div>
             
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -477,8 +548,183 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
           </div>
         </div>
 
-        {/* Pins Data View */}
-        {showPinsData ? (
+        {/* Calendar View */}
+        {showCalendar ? (
+          <div className="space-y-3 sm:space-y-4">
+            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+              {/* Month Navigation */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={prevMonth}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+                  {currentMonth.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}
+                </h2>
+                <button
+                  onClick={nextMonth}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 024 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                {/* Day headers */}
+                {['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'].map((day) => (
+                  <div key={day} className="text-center font-semibold text-slate-600 text-xs sm:text-sm p-1 sm:p-2">
+                    {day}
+                  </div>
+                ))}
+                
+                {/* Calendar days */}
+                {(() => {
+                  const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+                  const days = [];
+                  
+                  // Empty cells before month starts
+                  for (let i = 0; i < startingDayOfWeek; i++) {
+                    days.push(<div key={`empty-${i}`} className="aspect-square" />);
+                  }
+                  
+                  // Days of the month
+                  for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    const activity = getActivityForDate(date);
+                    const activityLevel = getActivityLevel(activity.created, activity.visited);
+                    const isSelected = selectedDay?.toDateString() === date.toDateString();
+                    
+                    days.push(
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDay(date)}
+                        className={`aspect-square p-1 sm:p-2 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? 'border-indigo-500 ring-2 ring-indigo-200'
+                            : 'border-transparent hover:border-slate-300'
+                        } ${activityLevel}`}
+                      >
+                        <div className="text-xs sm:text-sm font-medium text-slate-900">{day}</div>
+                        {(activity.created > 0 || activity.visited > 0) && (
+                          <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 space-y-0.5">
+                            {activity.created > 0 && (
+                              <div className="text-blue-700 font-semibold">+{activity.created}</div>
+                            )}
+                            {activity.visited > 0 && (
+                              <div className="text-amber-700 font-semibold">↻{activity.visited}</div>
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  }
+                  
+                  return days;
+                })()}
+              </div>
+
+              {/* Legend */}
+              <div className="mt-4 flex flex-wrap gap-3 text-xs sm:text-sm text-slate-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-100 rounded"></div>
+                  <span>+X = Nowe piny</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-amber-100 rounded"></div>
+                  <span>↻X = Wizyty</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 bg-slate-50 border border-slate-200 rounded"></div>
+                    <div className="w-3 h-3 bg-green-100 rounded"></div>
+                    <div className="w-3 h-3 bg-green-300 rounded"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <div className="w-3 h-3 bg-green-700 rounded"></div>
+                  </div>
+                  <span>Poziom aktywności</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Selected Day Details */}
+            {selectedDay && (
+              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 mb-4">
+                  {selectedDay.toLocaleDateString('pl-PL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </h3>
+                
+                {(() => {
+                  const activity = getActivityForDate(selectedDay);
+                  
+                  if (activity.created === 0 && activity.visited === 0) {
+                    return (
+                      <p className="text-slate-500 text-center py-8">Brak aktywności tego dnia</p>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-4">
+                      {/* New Pins */}
+                      {activity.pins.length > 0 && (
+                        <div>
+                          <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                              +{activity.created}
+                            </span>
+                            Nowe pinezki
+                          </h4>
+                          <div className="space-y-2">
+                            {activity.pins.map(pin => (
+                              <div key={pin.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="font-medium text-slate-900 text-sm sm:text-base">{pin.title}</div>
+                                <div className="text-xs text-slate-600 mt-1">{pin.category}</div>
+                                {pin.description && (
+                                  <div className="text-xs text-slate-500 mt-1">{pin.description}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Visits */}
+                      {activity.visits.length > 0 && (
+                        <div>
+                          <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs">
+                              ↻{activity.visited}
+                            </span>
+                            Wizyty
+                          </h4>
+                          <div className="space-y-2">
+                            {activity.visits.map(({ pin, visit }, idx) => (
+                              <div key={`${pin.id}-${visit.id}-${idx}`} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <div className="font-medium text-slate-900 text-sm sm:text-base">{pin.title}</div>
+                                <div className="text-xs text-slate-600 mt-1">
+                                  Odwiedził: {visit.name} • {new Date(visit.visitedAt).toLocaleTimeString('pl-PL')}
+                                </div>
+                                {visit.note && (
+                                  <div className="text-xs text-slate-500 mt-1 italic">"{visit.note}"</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        ) : showPinsData ? (
           <div className="space-y-3 sm:space-y-4">
             {/* Search Bar with Autocomplete */}
             <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4">
@@ -841,70 +1087,61 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        fontSize: '11px'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+                      3:00 PM
+</Pie> <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px' }} /> </PieChart> </ResponsiveContainer> </div>
 
-              {/* Category Bar Chart */}
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-                <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4">
-                  Ranking kategorii
-                </h2>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={categoryData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis type="number" tick={{ fill: '#1e293b', fontSize: 9 }} />
-                    <YAxis dataKey="name" type="category" width={60} tick={{ fill: '#1e293b', fontSize: 9 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        fontSize: '11px'
-                      }}
-                    />
-                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} name="Liczba">
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-      <style jsx global>{`
-        input[type="date"]::-webkit-calendar-picker-indicator {
-          filter: invert(0);
-        }
-        input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-          color: #1e293b;
-        }
-        input[type="date"]::-webkit-datetime-edit-text {
-          color: #1e293b;
-          padding: 0 0.3em;
-        }
-        input[type="date"]::-webkit-datetime-edit-month-field {
-          color: #1e293b;
-        }
-        input[type="date"]::-webkit-datetime-edit-day-field {
-          color: #1e293b;
-        }
-        input[type="date"]::-webkit-datetime-edit-year-field {
-          color: #1e293b;
-        }
-      `}</style>
-    </div>
-  );
+          {/* Category Bar Chart */}
+          <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+            <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4">
+              Ranking kategorii
+            </h2>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={categoryData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" tick={{ fill: '#1e293b', fontSize: 9 }} />
+                <YAxis dataKey="name" type="category" width={60} tick={{ fill: '#1e293b', fontSize: 9 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '11px'
+                  }}
+                />
+                <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} name="Liczba">
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+  <style jsx global>{`
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0);
+    }
+    input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+      color: #1e293b;
+    }
+    input[type="date"]::-webkit-datetime-edit-text {
+      color: #1e293b;
+      padding: 0 0.3em;
+    }
+    input[type="date"]::-webkit-datetime-edit-month-field {
+      color: #1e293b;
+    }
+    input[type="date"]::-webkit-datetime-edit-day-field {
+      color: #1e293b;
+    }
+    input[type="date"]::-webkit-datetime-edit-year-field {
+      color: #1e293b;
+    }
+  `}</style>
+</div>
+
+);
 }
