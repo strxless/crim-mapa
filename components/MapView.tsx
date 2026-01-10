@@ -365,26 +365,48 @@ export default function MapView() {
                       {p.description && <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{p.description}</p>}
                       <div className="flex gap-2">
                         <button className="px-3 py-2 rounded-md bg-red-600 text-white text-sm" onClick={() => setDeleteModalPinId(p.id)}>Usuń</button>
-                        <button className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" onClick={() => setEditing(true)}>Edytuj</button>
+                        <button 
+                  className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditing(true);
+                  }}
+                >
+                  Edytuj
+                </button>
                       </div>
                     </>
                   ) : (
                     <>
-                      <input className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" value={p.title} onChange={(e) => setSelected(sel => sel ? { ...sel, title: e.target.value } : sel)} placeholder="Tytuł" />
-                      <div>
-                        <select className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" value={p.category} onChange={(e) => {
+                    <input 
+                    className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
+                    value={selected?.title ?? ""} 
+                    onChange={(e) => setSelected(sel => sel ? { ...sel, title: e.target.value } : sel)} 
+                    placeholder="Tytuł" 
+                  />
+                  <div>
+                    <select 
+                      className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
+                      value={selected?.category ?? ""} 
+                      onChange={(e) => {
                         const val = e.target.value;
                         if (val === "__add__") {
-                          openCategoryModal((created) => setSelected(sel => sel ? { ...sel, category: created } : sel), p.category);
+                          openCategoryModal((created) => setSelected(sel => sel ? { ...sel, category: created } : sel), selected?.category);
                           return;
                         }
                         setSelected(sel => sel ? { ...sel, category: val } : sel);
-                      }}>
-                        {availableCategories.map(c => (<option key={c} value={c}>{c}</option>))}
-                        <option value="__add__">+ Dodaj kategorię…</option>
-                      </select>
-                      </div>
-                      <textarea className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" value={p.description ?? ""} onChange={(e) => setSelected(sel => sel ? { ...sel, description: e.target.value } : sel)} placeholder="Opis" />
+                      }}
+                    >
+                      {availableCategories.map(c => (<option key={c} value={c}>{c}</option>))}
+                      <option value="__add__">+ Dodaj kategorię…</option>
+                    </select>
+                  </div>
+                  <textarea 
+                    className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
+                    value={selected?.description ?? ""} 
+                    onChange={(e) => setSelected(sel => sel ? { ...sel, description: e.target.value } : sel)} 
+                    placeholder="Opis" 
+                  />
                       <div className="flex gap-2">
                         <button className="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm" onClick={() => selected && updatePin(selected)}>Zapisz</button>
                         <button className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" onClick={() => setEditing(false)}>Anuluj</button>
