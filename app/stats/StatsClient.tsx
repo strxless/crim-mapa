@@ -52,26 +52,63 @@ const normalizePolishName = (name: string): string => {
 
 const extractNames = (nameField: string): string[] => {
   if (!nameField) return [];
-  
-  // Split by common separators: comma, semicolon, "i", "oraz", "&", "+"
+
+  // Remove diacritics, lowercase, trim
+  const normalize = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+  // Absolute truth table
+  const CANONICAL_NAMES: { name: string; match: (n: string) => boolean }[] = [
+    {
+      name: "Łukasz",
+      match: n => n === "lukasz"
+    },
+    {
+      name: "Maksymilian",
+      match: n => n.startsWith("maks")
+    },
+    {
+      name: "Dawid",
+      match: n =>
+        n.startsWith("daw") || // dawid, dawyt, dawyd
+        n.startsWith("dav")    // david, davit
+    },
+    {
+      name: "Julia",
+      match: n =>
+        n.startsWith("jul") || // julia, julja, jula
+        n.startsWith("yul")    // yulia
+    }
+  ];
+
+  const canonicalize = (raw: string): string => {
+    const n = normalize(raw);
+
+    for (const entry of CANONICAL_NAMES) {
+      if (entry.match(n)) return entry.name;
+    }
+
+    // Safe fallback
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  };
+
   const names = nameField
     .split(/[,;]+\s*|\s+(?:i|oraz|and|\+|&)\s+/)
     .map(n => n.trim())
-    .filter(n => n.length > 0)
+    .filter(Boolean)
     .map(n => {
-      // Remove trailing dots and spaces
-      n = n.replace(/\.$/, '').trim();
-      
-      // Take ONLY the first word (the actual first name)
-      // "Dawid K" -> "Dawid", "Julia M." -> "Julia", "Lukasz Kowalski" -> "Lukasz"
+      n = n.replace(/\.$/, "").trim();
       const firstName = n.split(/\s+/)[0];
-      
-      // Capitalize first letter, lowercase rest
-      return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      return canonicalize(firstName);
     });
-  
-  return [...new Set(names)]; // Remove duplicates
+
+  return [...new Set(names)];
 };
+
 
 export default function StatsClient({ stats }: { stats: StatsData }) {
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
