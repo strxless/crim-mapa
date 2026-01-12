@@ -340,13 +340,14 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
   };
 
   // Calendar helpers
-  const getDaysInMonth = (date: Date) => {
+    const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+    // Convert US day (0=Sun) to EU day (0=Mon): subtract 1 and handle Sunday wrap
+    const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
     
     return { daysInMonth, startingDayOfWeek, year, month };
   };
