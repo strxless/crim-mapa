@@ -6,14 +6,13 @@ import useSWR, { mutate } from "swr";
 import type { Pin, Visit } from "@/types";
 import "leaflet/dist/leaflet.css";
 
-
-
 // Dynamically import react-leaflet components (client-only)
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
 const CircleMarker = dynamic(() => import("react-leaflet").then(m => m.CircleMarker), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 const ZoomControl = dynamic(() => import("react-leaflet").then(m => m.ZoomControl), { ssr: false });
+const Tooltip = dynamic(() => import("react-leaflet").then(m => m.Tooltip), { ssr: false });
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -22,22 +21,9 @@ const fetcher = async (url: string) => {
 };
 
 const DEFAULT_PALETTE = [
-  "#22c55e", // zielony
-  "#3b82f6", // niebieski
-  "#ef4444", // czerwony
-  "#eab308", // żółty
-  "#a855f7", // fioletowy
-  "#06b6d4", // cyjan
-  "#f97316", // pomarańczowy
-  "#84cc16", // limonkowy
-  "#ec4899", // różowy
-  "#8b5cf6", // indygo
-  "#14b8a6", // teal
-  "#f59e0b", // amber
-  "#10b981", // szmaragdowy
-  "#6366f1", // ciemny niebieski
-  "#f43f5e", // rose
-  "#d946ef", // fuksja
+  "#22c55e", "#3b82f6", "#ef4444", "#eab308", "#a855f7", "#06b6d4",
+  "#f97316", "#84cc16", "#ec4899", "#8b5cf6", "#14b8a6", "#f59e0b",
+  "#10b981", "#6366f1", "#f43f5e", "#d946ef",
 ] as const;
 
 function hashColor(input: string): string {
@@ -46,7 +32,25 @@ function hashColor(input: string): string {
   return DEFAULT_PALETTE[h % DEFAULT_PALETTE.length];
 }
 
-// Toast notification component
+// Get relative time in Polish
+function getRelativeTime(date: string): string {
+  const now = new Date().getTime();
+  const then = new Date(date).getTime();
+  const diffMs = now - then;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Teraz";
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays === 1) return "Wczoraj";
+  if (diffDays < 7) return `${diffDays} dni`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} tyg`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} mies`;
+  return `${Math.floor(diffDays / 365)} lat`;
+}
+
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 3000);
@@ -60,7 +64,6 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   );
 }
 
-// Delete confirmation modal
 function DeleteConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4" onClick={onCancel}>
@@ -97,7 +100,6 @@ export default function MapView() {
     (pins ?? []).forEach(p => set.add(p.category));
     return Array.from(set).sort();
   }, [pins]);
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
   
   useEffect(() => {
@@ -191,7 +193,6 @@ export default function MapView() {
       if (selected) await fetchPinDetails(selected.id);
     }
     setEditing(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   const deletePin = useCallback(async (id: number) => {
@@ -241,7 +242,6 @@ export default function MapView() {
     setDescription("");
   };
 
-  // ESC to close modals
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -253,14 +253,12 @@ export default function MapView() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [catModalOpen, deleteModalPinId]);
 
-  // Auto-focus visit name input when details load
   useEffect(() => {
     if (details?.pin?.id && visitNameRef.current) {
       setTimeout(() => visitNameRef.current?.focus(), 100);
     }
   }, [details?.pin?.id]);
 
-  // Check if pin is new (within 24h)
   const isNewPin = useCallback((pin: Pin) => {
     const now = new Date().getTime();
     const created = new Date(pin.createdAt).getTime();
@@ -269,10 +267,8 @@ export default function MapView() {
 
   return (
     <div className="relative w-full h-full">
-      {/* Toast */}
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
-      {/* Delete confirmation modal */}
       {deleteModalPinId && (
         <DeleteConfirmModal
           onConfirm={() => deletePin(deleteModalPinId)}
@@ -280,7 +276,6 @@ export default function MapView() {
         />
       )}
 
-      {/* Controls */}
       <div className="absolute z-[1000] left-2 right-2 top-2 flex gap-2 items-center">
         <div className="flex-1 flex gap-2 bg-white/90 dark:bg-gray-900/90 border border-gray-300 dark:border-gray-700 rounded-xl p-2 backdrop-blur">
           <select
@@ -319,7 +314,6 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Map */}
       <MapContainer center={[54.5189, 18.5305]} zoom={12} zoomControl={false} className="w-full h-full" scrollWheelZoom ref={mapRef}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -328,9 +322,10 @@ export default function MapView() {
         <ClickCatcher onClick={onMapClick} />
         <ZoomControl position="bottomright" />
 
-        {/* Existing pins */}
         {(pins ?? []).map((p) => {
           const isNew = isNewPin(p);
+          const relTime = getRelativeTime(p.updatedAt);
+          
           return (
             <CircleMarker 
               key={p.id} 
@@ -353,6 +348,24 @@ export default function MapView() {
                 } 
               }}
             >
+              <Tooltip 
+                permanent 
+                direction="top" 
+                offset={[0, -12]}
+                className="pin-label-tooltip"
+              >
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="text-[10px] font-semibold whitespace-nowrap bg-gray-900/90 dark:bg-gray-800/90 text-white px-1.5 py-0.5 rounded">
+                    {relTime}
+                  </div>
+                  {isNew && (
+                    <div className="text-[9px] font-bold whitespace-nowrap bg-emerald-600 text-white px-1.5 py-0.5 rounded animate-pulse-subtle">
+                      NOWA
+                    </div>
+                  )}
+                </div>
+              </Tooltip>
+              
               <Popup minWidth={220} maxWidth={340}>
                 <div className="space-y-2 w-[88vw] max-w-xs max-h-[65vh] overflow-y-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 rounded-lg">
                   {!editing ? (
@@ -368,47 +381,47 @@ export default function MapView() {
                       <div className="flex gap-2">
                         <button className="px-3 py-2 rounded-md bg-red-600 text-white text-sm" onClick={() => setDeleteModalPinId(p.id)}>Usuń</button>
                         <button 
-                  className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(true);
-                  }}
-                >
-                  Edytuj
-                </button>
+                          className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditing(true);
+                          }}
+                        >
+                          Edytuj
+                        </button>
                       </div>
                     </>
                   ) : (
                     <>
-                    <input 
-                    className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
-                    value={selected?.title ?? ""} 
-                    onChange={(e) => setSelected(sel => sel ? { ...sel, title: e.target.value } : sel)} 
-                    placeholder="Tytuł" 
-                  />
-                  <div>
-                    <select 
-                      className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
-                      value={selected?.category ?? ""} 
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "__add__") {
-                          openCategoryModal((created) => setSelected(sel => sel ? { ...sel, category: created } : sel), selected?.category);
-                          return;
-                        }
-                        setSelected(sel => sel ? { ...sel, category: val } : sel);
-                      }}
-                    >
-                      {availableCategories.map(c => (<option key={c} value={c}>{c}</option>))}
-                      <option value="__add__">+ Dodaj kategorię…</option>
-                    </select>
-                  </div>
-                  <textarea 
-                    className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
-                    value={selected?.description ?? ""} 
-                    onChange={(e) => setSelected(sel => sel ? { ...sel, description: e.target.value } : sel)} 
-                    placeholder="Opis" 
-                  />
+                      <input 
+                        className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
+                        value={selected?.title ?? ""} 
+                        onChange={(e) => setSelected(sel => sel ? { ...sel, title: e.target.value } : sel)} 
+                        placeholder="Tytuł" 
+                      />
+                      <div>
+                        <select 
+                          className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
+                          value={selected?.category ?? ""} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__add__") {
+                              openCategoryModal((created) => setSelected(sel => sel ? { ...sel, category: created } : sel), selected?.category);
+                              return;
+                            }
+                            setSelected(sel => sel ? { ...sel, category: val } : sel);
+                          }}
+                        >
+                          {availableCategories.map(c => (<option key={c} value={c}>{c}</option>))}
+                          <option value="__add__">+ Dodaj kategorię…</option>
+                        </select>
+                      </div>
+                      <textarea 
+                        className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
+                        value={selected?.description ?? ""} 
+                        onChange={(e) => setSelected(sel => sel ? { ...sel, description: e.target.value } : sel)} 
+                        placeholder="Opis" 
+                      />
                       <div className="flex gap-2">
                         <button className="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm" onClick={() => selected && updatePin(selected)}>Zapisz</button>
                         <button className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" onClick={() => setEditing(false)}>Anuluj</button>
@@ -416,7 +429,6 @@ export default function MapView() {
                     </>
                   )}
 
-                  {/* Visits */}
                   {details?.pin?.id === p.id && (
                     <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
                       <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">Historia odwiedzin</div>
@@ -500,7 +512,6 @@ export default function MapView() {
           );
         })}
 
-        {/* Draft marker */}
         {draftPos && (
           <CircleMarker center={[draftPos.lat, draftPos.lng]} radius={8} pathOptions={{ color: category ? getCategoryColor(category) : "#22c55e", fillColor: category ? getCategoryColor(category) : "#22c55e", fillOpacity: 0.7 }}>
             <Popup minWidth={220} maxWidth={340}>
@@ -519,24 +530,24 @@ export default function MapView() {
                   }}
                 />
                 <div>
-                <select className="w-full px-3 py-3 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" value={category} onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "__add__") {
-                    openCategoryModal((created) => setCategory(created));
-                    return;
-                  }
-                  setCategory(val);
-                }}>
-                  <option value="" disabled>Wybierz kategorię…</option>
-                  {availableCategories.map(c => (<option key={c} value={c}>{c}</option>))}
-                  <option value="__add__">+ Dodaj kategorię…</option>
-                </select>
-                </div>
+                  <select className="w-full px-3 py-3 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" value={category} onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "__add__") {
+                      openCategoryModal((created) => setCategory(created));
+                      return;
+                    }
+                    setCategory(val);
+                  }}>
+                    <option value="" disabled>Wybierz kategorię…</option>
+                    {availableCategories.map(c => (<option key={c} value={c}>{c}</option>))}
+                    <option value="__add__">+ Dodaj kategorię…</option>
+                  </select>
+                  </div>
                 <textarea className="w-full px-3 py-3 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" placeholder="Opis (opcjonalnie)" value={description} onChange={(e) => setDescription(e.target.value)} />
                 <div className="flex gap-2">
                   <button className="px-3 py-3 rounded-md bg-emerald-600 text-white text-sm" onClick={() => { if (!title.trim() || !category.trim()) { alert("Podaj tytuł i kategorię"); return; } savePin({ title: title.trim(), category: category.trim(), description: description.trim() || undefined }); clearDraft(); }}>Zapisz</button>
                   <button className="px-3 py-3 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" onClick={() => { setDraftPos(null); clearDraft(); }}>Anuluj</button>
-                  </div>
+                </div>
               </div>
             </Popup>
           </CircleMarker>
@@ -606,6 +617,20 @@ export default function MapView() {
           animation: pulse-subtle 2s ease-in-out infinite;
         }
 
+        /* Tooltip styles for labels */
+        .pin-label-tooltip.leaflet-tooltip {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          pointer-events: none !important;
+        }
+        
+        .pin-label-tooltip.leaflet-tooltip::before {
+          display: none !important;
+        }
+
         /* Remove white background from Leaflet popups in dark mode */
         @media (prefers-color-scheme: dark) {
           .leaflet-popup-content-wrapper,
@@ -635,7 +660,6 @@ export default function MapView() {
 }
 
 function ClickCatcher({ onClick }: { onClick: (e: any) => void }) {
-  // @ts-ignore
   const Inner = dynamic(async () => {
     const { useMapEvents } = await import("react-leaflet");
     return function C() {
@@ -643,6 +667,5 @@ function ClickCatcher({ onClick }: { onClick: (e: any) => void }) {
       return null;
     };
   }, { ssr: false });
-  // @ts-ignore
   return <Inner />;
 }
