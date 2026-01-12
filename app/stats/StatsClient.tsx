@@ -353,21 +353,34 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
   };
 
   const getActivityForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // Use local date string to avoid timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
     const dayData = currentStats.daily.find(d => d.date === dateStr);
     
     if (!dayData) return { pins: [], visits: [], created: 0, visited: 0 };
     
     const dayPins = pinsData.filter(pin => {
-      const createdDate = new Date(pin.createdAt).toISOString().split('T')[0];
-      return createdDate === dateStr;
+      const createdDate = new Date(pin.createdAt);
+      const createdYear = createdDate.getFullYear();
+      const createdMonth = String(createdDate.getMonth() + 1).padStart(2, '0');
+      const createdDay = String(createdDate.getDate()).padStart(2, '0');
+      const createdStr = `${createdYear}-${createdMonth}-${createdDay}`;
+      return createdStr === dateStr;
     });
     
     const dayVisits: Array<{pin: Pin, visit: Visit}> = [];
     pinsData.forEach(pin => {
       pin.visits?.forEach(visit => {
-        const visitDate = new Date(visit.visitedAt).toISOString().split('T')[0];
-        if (visitDate === dateStr) {
+        const visitDate = new Date(visit.visitedAt);
+        const visitYear = visitDate.getFullYear();
+        const visitMonth = String(visitDate.getMonth() + 1).padStart(2, '0');
+        const visitDay = String(visitDate.getDate()).padStart(2, '0');
+        const visitStr = `${visitYear}-${visitMonth}-${visitDay}`;
+        if (visitStr === dateStr) {
           dayVisits.push({ pin, visit });
         }
       });
@@ -579,7 +592,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {/* Day headers */}
-                {['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'].map((day) => (
+                {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((day) => (
                   <div key={day} className="text-center font-semibold text-slate-600 text-xs sm:text-sm p-1 sm:p-2">
                     {day}
                   </div>
