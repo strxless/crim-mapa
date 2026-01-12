@@ -6,6 +6,8 @@ import useSWR, { mutate } from "swr";
 import type { Pin, Visit } from "@/types";
 import "leaflet/dist/leaflet.css";
 
+
+
 // Dynamically import react-leaflet components (client-only)
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
@@ -432,23 +434,63 @@ export default function MapView() {
                           <div className="text-sm text-gray-600 dark:text-gray-400">Brak odwiedzin</div>
                         )}
                       </div>
-                      <div className="mt-2 space-y-2">
-                        <input 
-                          ref={visitNameRef}
-                          className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
-                          placeholder="Twoje imię" 
-                          value={visitName} 
-                          onChange={(e) => setVisitName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && visitName.trim()) {
+                      <div className="mt-3 space-y-2">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Dodaj aktualizację</div>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            {['Dawid', 'Julia', 'Maksymilian', 'Łukasz'].map(name => (
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => {
+                                  const currentNames = visitName.split(',').map(n => n.trim()).filter(Boolean);
+                                  if (currentNames.includes(name)) {
+                                    const filtered = currentNames.filter(n => n !== name);
+                                    setVisitName(filtered.join(', '));
+                                  } else {
+                                    setVisitName([...currentNames, name].join(', '));
+                                  }
+                                }}
+                                className={`px-2 py-1.5 rounded-md font-medium transition-all text-xs ${
+                                  visitName.split(',').map(n => n.trim()).includes(name)
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
+                              >
+                                {name}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            ref={visitNameRef}
+                            type="text"
+                            value={visitName}
+                            onChange={(e) => setVisitName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600"
+                            placeholder="Kto odwiedził?"
+                          />
+                          <textarea
+                            value={visitNote}
+                            onChange={(e) => setVisitNote(e.target.value)}
+                            className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600"
+                            placeholder="Notatka (opcjonalnie)"
+                            rows={2}
+                          />
+                          <button
+                            className="w-full px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium"
+                            onClick={() => {
+                              if (!visitName.trim()) {
+                                alert("Podaj imię");
+                                return;
+                              }
                               addVisit(p.id, visitName.trim(), visitNote.trim() || undefined);
                               setVisitName("");
                               setVisitNote("");
-                            }
-                          }}
-                        />
-                        <textarea className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" placeholder="Notatka (opcjonalnie)" value={visitNote} onChange={(e) => setVisitNote(e.target.value)} />
-                        <button className="w-full px-3 py-2 rounded-md bg-blue-600 text-white text-sm" onClick={() => { if (!visitName.trim()) { alert("Podaj imię"); return; } addVisit(p.id, visitName.trim(), visitNote.trim() || undefined); setVisitName(""); setVisitNote(""); }}>Dodaj</button>
+                            }}
+                          >
+                            Dodaj aktualizację
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -494,7 +536,7 @@ export default function MapView() {
                 <div className="flex gap-2">
                   <button className="px-3 py-3 rounded-md bg-emerald-600 text-white text-sm" onClick={() => { if (!title.trim() || !category.trim()) { alert("Podaj tytuł i kategorię"); return; } savePin({ title: title.trim(), category: category.trim(), description: description.trim() || undefined }); clearDraft(); }}>Zapisz</button>
                   <button className="px-3 py-3 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" onClick={() => { setDraftPos(null); clearDraft(); }}>Anuluj</button>
-                </div>
+                  </div>
               </div>
             </Popup>
           </CircleMarker>
