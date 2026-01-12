@@ -34,7 +34,47 @@ type Visit = {
   visitedAt: string;
 };
 
+const normalizePolishName = (name: string): string => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/ł/g, 'l')
+    .replace(/ą/g, 'a')
+    .replace(/ć/g, 'c')
+    .replace(/ę/g, 'e')
+    .replace(/ń/g, 'n')
+    .replace(/ó/g, 'o')
+    .replace(/ś/g, 's')
+    .replace(/ź/g, 'z')
+    .replace(/ż/g, 'z');
+};
+
+
+const extractNames = (nameField: string): string[] => {
+  if (!nameField) return [];
+  
+  // Split by common separators: comma, semicolon, "i", "oraz", "&", "+"
+  const names = nameField
+    .split(/[,;]+\s*|\s+(?:i|oraz|and|\+|&)\s+/)
+    .map(n => n.trim())
+    .filter(n => n.length > 0)
+    .map(n => {
+      // Remove trailing dots and spaces
+      n = n.replace(/\.$/, '').trim();
+      
+      // Take ONLY the first word (the actual first name)
+      // "Dawid K" -> "Dawid", "Julia M." -> "Julia", "Lukasz Kowalski" -> "Lukasz"
+      const firstName = n.split(/\s+/)[0];
+      
+      // Capitalize first letter, lowercase rest
+      return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+    });
+  
+  return [...new Set(names)]; // Remove duplicates
+};
+
 export default function StatsClient({ stats }: { stats: StatsData }) {
+  const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -297,23 +337,42 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
   }, [currentStats, startDate, endDate]);
 
   const filteredPins = useMemo(() => {
-    let filtered = pinsData;
-    
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(pin => selectedCategories.includes(pin.category));
-    }
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(pin => 
-        pin.title.toLowerCase().includes(term) ||
-        pin.category.toLowerCase().includes(term) ||
-        pin.description?.toLowerCase().includes(term)
-      );
-    }
-    
-    return filtered;
-  }, [pinsData, searchTerm, selectedCategories]);
+  let filtered = pinsData;
+  
+  // Category filter
+  if (selectedCategories.length > 0) {
+    filtered = filtered.filter(pin => selectedCategories.includes(pin.category));
+  }
+  
+  // Name filter - check if any visit has a matching name
+  if (selectedNames.length > 0) {
+    filtered = filtered.filter(pin => {
+      if (!pin.visits || pin.visits.length === 0) return false;
+      
+      return pin.visits.some(visit => {
+        const visitNames = extractNames(visit.name);
+        const normalizedVisitNames = visitNames.map(normalizePolishName);
+        const normalizedSelectedNames = selectedNames.map(normalizePolishName);
+        
+        return normalizedSelectedNames.some(selectedName => 
+          normalizedVisitNames.includes(selectedName)
+        );
+      });
+    });
+  }
+  
+  // Search term filter
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filtered = filtered.filter(pin => 
+      pin.title.toLowerCase().includes(term) ||
+      pin.category.toLowerCase().includes(term) ||
+      pin.description?.toLowerCase().includes(term)
+    );
+  }
+  
+  return filtered;
+}, [pinsData, searchTerm, selectedCategories, selectedNames]);
 
   const suggestions = useMemo(() => {
     if (!searchTerm || searchTerm.length < 2) return [];
@@ -326,10 +385,23 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       .slice(0, 5);
   }, [pinsData, searchTerm]);
 
-  const availableCategories = useMemo(() => {
-    const categories = new Set(pinsData.map(pin => pin.category));
-    return Array.from(categories).sort();
-  }, [pinsData]);
+  const { availableCategories, availableNames } = useMemo(() => {
+  const categories = new Set(pinsData.map(pin => pin.category));
+  const namesSet = new Set<string>();
+  
+  // Extract all unique names from visits
+  pinsData.forEach(pin => {
+    pin.visits?.forEach(visit => {
+      const names = extractNames(visit.name);
+      names.forEach(name => namesSet.add(name));
+    });
+  });
+  
+  return {
+    availableCategories: Array.from(categories).sort(),
+    availableNames: Array.from(namesSet).sort()
+  };
+}, [pinsData]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -338,6 +410,13 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
         : [...prev, category]
     );
   };
+  const toggleName = (name: string) => {
+  setSelectedNames(prev => 
+    prev.includes(name) 
+      ? prev.filter(n => n !== name)
+      : [...prev, name]
+  );
+};
 
   // Calendar helpers
     const getDaysInMonth = (date: Date) => {
@@ -773,6 +852,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                   </div>
                 )}
               </div>
+              {/* Add this right after the search input, before category filters */}
 
               {/* Category Filter Buttons */}
               <div className="mt-3 sm:mt-4">
@@ -805,14 +885,65 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                     </button>
                   ))}
                 </div>
-                {selectedCategories.length > 0 && (
+<div className="mt-4 pt-4 border-t border-slate-200">
+  <div className="flex items-center justify-between mb-2">
+    <h3 className="text-xs sm:text-sm font-semibold text-slate-900">Filtruj po osobie:</h3>
+    {selectedNames.length > 0 && (
+      <button
+        onClick={() => setSelectedNames([])}
+        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+      >
+        Wyczyść
+      </button>
+    )}
+  </div>
+  <div className="flex flex-wrap gap-1.5 sm:gap-2">
+    {availableNames.map((name) => (
+      <button
+        key={name}
+        onClick={() => toggleName(name)}
+        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+          selectedNames.includes(name)
+            ? 'bg-indigo-600 text-white'
+            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+        }`}
+      >
+        {name}
+        {selectedNames.includes(name) && (
+          <span className="ml-1">✓</span>
+        )}
+      </button>
+    ))}
+  </div>
+  {selectedNames.length > 0 && (
+    <p className="text-xs text-slate-500 mt-2">
+      Filtrowanie po: {selectedNames.join(', ')}
+    </p>
+  )}
+</div>
+                {(selectedCategories.length > 0 || selectedNames.length > 0) && (
                   <p className="text-xs text-slate-500 mt-2">
                     Pokazuję {filteredPins.length} {filteredPins.length === 1 ? 'pinezkę' : 'pinezek'}
+                    {selectedCategories.length > 0 && ` (kategorie: ${selectedCategories.join(', ')})`}
+                    {selectedNames.length > 0 && ` (osoby: ${selectedNames.join(', ')})`}
                   </p>
                 )}
               </div>
             </div>
 
+{(selectedCategories.length > 0 || selectedNames.length > 0) && (
+  <div className="mt-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
+    <button
+      onClick={() => {
+        setSelectedCategories([]);
+        setSelectedNames([]);
+      }}
+      className="w-full px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium"
+    >
+      Wyczyść wszystkie filtry ({selectedCategories.length + selectedNames.length})
+    </button>
+  </div>
+)}
             {/* Pins List - Mobile optimized */}
             <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-4">
               {/* Pins Column */}
