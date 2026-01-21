@@ -3,6 +3,10 @@
 
 import { useState, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+
+import { Document, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, Packer, TextRun } from 'docx';
+import { saveAs } from 'file-saver';
+
 import * as XLSX from 'xlsx';
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
@@ -127,6 +131,112 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+
+  const exportPinToDocx = async (pin: Pin) => {
+  try {
+    // Get all unique names from visits
+    const allNames = pin.visits?.map(v => extractNames(v.name)).flat() || [];
+    const uniqueNames = [...new Set(allNames)].join(', ') || 'Brak danych';
+
+    // Create visit entries - each visit on a new line with bold date
+    const visitParagraphs = pin.visits?.length 
+      ? pin.visits.map(visit => {
+          const visitDate = new Date(visit.visitedAt).toLocaleDateString('pl-PL');
+          const note = visit.note || 'Brak notatki';
+          
+          return new Paragraph({
+            children: [
+              new TextRun({
+                text: `${visitDate}: `,
+                bold: true,
+              }),
+              new TextRun({
+                text: note,
+                bold: false,
+              }),
+            ],
+            spacing: { after: 200 }, // Add space after each visit entry
+          });
+        })
+      : [new Paragraph({ text: 'Brak wizyt', bold: false })];
+
+    // Create the document
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          // Title
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `INTERAKCJE W "${pin.title}"`,
+                bold: true,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+          }),
+
+          // Main Table
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              // Row 1: Streetworker and Names
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Streetworker/Streetworkerka", bold: true })],
+                    })],
+                    width: { size: 50, type: WidthType.PERCENTAGE },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: uniqueNames, bold: true })],
+                    })],
+                    width: { size: 50, type: WidthType.PERCENTAGE },
+                  }),
+                ],
+              }),
+
+              // Row 2: Header
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Data i opis podjętych działań", bold: true })],
+                      alignment: AlignmentType.CENTER,
+                    })],
+                    columnSpan: 2,
+                  }),
+                ],
+              }),
+
+              // Row 3: Visit details (each on new line)
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: visitParagraphs,
+                    columnSpan: 2,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }],
+    });
+
+    // Generate and save the document
+    const blob = await Packer.toBlob(doc);
+    const currentDate = new Date().toLocaleDateString('pl-PL').replace(/\./g, '-');
+    const fileName = `${pin.title.replace(/[^a-z0-9]/gi, '_')}_interakcje_${currentDate}.docx`;
+    saveAs(blob, fileName);
+  } catch (error) {
+    console.error('Błąd podczas eksportu do DOCX:', error);
+    alert('Wystąpił błąd podczas eksportu dokumentu');
+  }
+};
 
   const refreshStats = async () => {
     setIsLoading(true);
@@ -1011,6 +1121,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                         <span className="whitespace-nowrap">{new Date(pin.createdAt).toLocaleDateString('pl-PL')}</span>
                       </div>
                     </div>
+
                   ))}
                 </div>
               </div>
@@ -1033,6 +1144,16 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                           {new Date(selectedPin.createdAt).toLocaleDateString('pl-PL')}
                         </span>
                       </div>
+
+                              <button
+          onClick={() => exportPinToDocx(selectedPin)}
+          className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Eksportuj do Word
+        </button>
                     </div>
 
                     <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 mb-3">
