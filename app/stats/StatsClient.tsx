@@ -139,26 +139,29 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
     const uniqueNames = [...new Set(allNames)].join(', ') || 'Brak danych';
 
     // Create visit entries - each visit on a new line with bold date
-    const visitParagraphs = pin.visits?.length 
-      ? pin.visits.map(visit => {
-          const visitDate = new Date(visit.visitedAt).toLocaleDateString('pl-PL');
-          const note = visit.note || 'Brak notatki';
-          
-          return new Paragraph({
-            children: [
-              new TextRun({
-                text: `${visitDate}: `,
-                bold: true,
-              }),
-              new TextRun({
-                text: note,
-                bold: false,
-              }),
-            ],
-            spacing: { after: 200 }, // Add space after each visit entry
-          });
-        })
-      : [new Paragraph({ text: 'Brak wizyt', bold: false })];
+    // Create visit entries - each visit on a new line with bold date
+const visitParagraphs = pin.visits?.length 
+  ? pin.visits.map(visit => {
+      const visitDate = new Date(visit.visitedAt).toLocaleDateString('pl-PL');
+      const note = visit.note || 'Brak notatki';
+      
+      return new Paragraph({
+        children: [
+          new TextRun({
+            text: `${visitDate}: `,
+            bold: true,
+          }),
+          new TextRun({
+            text: note,
+            bold: false,
+          }),
+        ],
+        spacing: { after: 200 },
+      });
+    })
+  : [new Paragraph({ 
+      children: [new TextRun({ text: 'Brak wizyt', bold: false })]
+    })];
 
     // Create the document
     const doc = new Document({
