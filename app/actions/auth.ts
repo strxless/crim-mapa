@@ -1,9 +1,9 @@
-"use server";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import crypto from "crypto";
-import postgres from "postgres";
-import Database from "better-sqlite3";
+'use server';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import crypto from 'crypto';
+import postgres from 'postgres';
+import Database from 'better-sqlite3';
 
 const MAX_ATTEMPTS = 3;
 const LOCK_DURATION = 24 * 60 * 60 * 1000;
@@ -25,31 +25,31 @@ interface User {
 const attemptStore = new Map<string, AttemptData>();
 
 // Check if we should use SQLite (localhost)
-const USE_SQLITE = process.env.USE_SQLITE === "true";
+const USE_SQLITE = process.env.USE_SQLITE === 'true';
 
 let sqliteDb: Database.Database | null = null;
 
 function getSQLiteDB() {
   if (!sqliteDb) {
-    sqliteDb = new Database("./data/auth.db");
+    sqliteDb = new Database('./data/auth.db');
   }
   return sqliteDb;
 }
 
 function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
+  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 function getClientId(): string {
   const cookieStore = cookies();
-  let clientId = cookieStore.get("client_id")?.value;
+  let clientId = cookieStore.get('client_id')?.value;
 
   if (!clientId) {
-    clientId = crypto.randomBytes(32).toString("hex");
-    cookieStore.set("client_id", clientId, {
+    clientId = crypto.randomBytes(32).toString('hex');
+    cookieStore.set('client_id', clientId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       maxAge: 365 * 24 * 60 * 60,
     });
   }
@@ -68,7 +68,7 @@ function getDB() {
 export async function initDatabase() {
   if (USE_SQLITE) {
     const db = getSQLiteDB();
-    
+
     db.exec(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
@@ -78,21 +78,22 @@ export async function initDatabase() {
       last_login TEXT
     )`);
 
-    const count = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+    const count = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
 
     if (count.count === 0) {
-      const defaultPassword = hashPassword("mopsgdynia");
+      const defaultPassword = hashPassword('mopsgdynia');
       const users = [
-        "d.zablocki@mopsgdynia.pl",
-        "j.nowicka@mopsgdynia.pl",
-        "m.adamski@mopsgdynia.pl",
-        "l.filc@mopsgdynia.pl",
-        "m.walenciej@mopsgdynia.pl",
-        "p.niemczyk@mopsgdynia.pl",
-        "m.kowalewski@mopsgdynia.pl"
+        'd.zablocki@mopsgdynia.pl',
+        'j.nowicka@mopsgdynia.pl',
+        'l.filc@mopsgdynia.pl',
+        'm.walenciej@mopsgdynia.pl',
+        'p.niemczyk@mopsgdynia.pl',
+        'm.kowalewski@mopsgdynia.pl',
       ];
 
-      const insert = db.prepare("INSERT INTO users (email, password_hash, must_change_password) VALUES (?, ?, 1)");
+      const insert = db.prepare(
+        'INSERT INTO users (email, password_hash, must_change_password) VALUES (?, ?, 1)'
+      );
       for (const email of users) {
         insert.run(email, defaultPassword);
       }
@@ -113,15 +114,15 @@ export async function initDatabase() {
     const count = Number(result[0].count);
 
     if (count === 0) {
-      const defaultPassword = hashPassword("mopsgdynia");
+      const defaultPassword = hashPassword('mopsgdynia');
       const users = [
-        "d.zablocki@mopsgdynia.pl",
-        "j.nowicka@mopsgdynia.pl",
-        "m.adamski@mopsgdynia.pl",
-        "l.filc@mopsgdynia.pl",
-        "m.walenciej@mopsgdynia.pl",
-        "p.niemczyk@mopsgdynia.pl",
-        "m.kowalewski@mopsgdynia.pl"
+        'd.zablocki@mopsgdynia.pl',
+        'j.nowicka@mopsgdynia.pl',
+        'm.adamski@mopsgdynia.pl',
+        'l.filc@mopsgdynia.pl',
+        'm.walenciej@mopsgdynia.pl',
+        'p.niemczyk@mopsgdynia.pl',
+        'm.kowalewski@mopsgdynia.pl',
       ];
 
       for (const email of users) {
@@ -134,22 +135,20 @@ export async function initDatabase() {
 }
 
 export async function login(formData: FormData) {
-  const email = (formData.get("email") as string)?.toLowerCase().trim();
-  const password = formData.get("password") as string;
+  const email = (formData.get('email') as string)?.toLowerCase().trim();
+  const password = formData.get('password') as string;
   const clientId = getClientId();
 
   if (!email || !password) {
     return {
       success: false,
-      error: "Email i hasło są wymagane.",
+      error: 'Email i hasło są wymagane.',
     };
   }
 
   const attemptData = attemptStore.get(clientId);
   if (attemptData?.lockedUntil && Date.now() < attemptData.lockedUntil) {
-    const remainingTime = Math.ceil(
-      (attemptData.lockedUntil - Date.now()) / 1000 / 60
-    );
+    const remainingTime = Math.ceil((attemptData.lockedUntil - Date.now()) / 1000 / 60);
     return {
       success: false,
       error: `Dostęp zablokowany. Spróbuj ponownie za ${remainingTime} minut.`,
@@ -167,11 +166,14 @@ export async function login(formData: FormData) {
 
   if (USE_SQLITE) {
     const db = getSQLiteDB();
-    const result = db.prepare("SELECT * FROM users WHERE email = ? AND password_hash = ?").get(email, passwordHash) as User | undefined;
+    const result = db
+      .prepare('SELECT * FROM users WHERE email = ? AND password_hash = ?')
+      .get(email, passwordHash) as User | undefined;
     user = result || null;
   } else {
     const sql = getDB();
-    const result = await sql`SELECT * FROM users WHERE email = ${email} AND password_hash = ${passwordHash}`;
+    const result =
+      await sql`SELECT * FROM users WHERE email = ${email} AND password_hash = ${passwordHash}`;
     await sql.end();
     user = result.length > 0 ? (result[0] as unknown as User) : null;
   }
@@ -187,7 +189,7 @@ export async function login(formData: FormData) {
       });
       return {
         success: false,
-        error: "Wyczerpano limit prób. Dostęp zablokowany na 24 godziny.",
+        error: 'Wyczerpano limit prób. Dostęp zablokowany na 24 godziny.',
         attemptsLeft: 0,
         locked: true,
       };
@@ -206,7 +208,7 @@ export async function login(formData: FormData) {
 
   if (USE_SQLITE) {
     const db = getSQLiteDB();
-    db.prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+    db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
   } else {
     const sql2 = getDB();
     await sql2`UPDATE users SET last_login = now() WHERE id = ${user.id}`;
@@ -214,45 +216,49 @@ export async function login(formData: FormData) {
   }
 
   const cookieStore = cookies();
-  cookieStore.set("auth_session", JSON.stringify({
-    userId: user.id,
-    email: user.email
-  }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 60 * 60 * 24,
-  });
+  cookieStore.set(
+    'auth_session',
+    JSON.stringify({
+      userId: user.id,
+      email: user.email,
+    }),
+    {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24,
+    }
+  );
 
   return {
     success: true,
-    mustChangePassword: Boolean(user.must_change_password)
+    mustChangePassword: Boolean(user.must_change_password),
   };
 }
 
 export async function changePassword(formData: FormData) {
-  const currentPassword = formData.get("currentPassword") as string;
-  const newPassword = formData.get("newPassword") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const currentPassword = formData.get('currentPassword') as string;
+  const newPassword = formData.get('newPassword') as string;
+  const confirmPassword = formData.get('confirmPassword') as string;
 
   if (!currentPassword || !newPassword || !confirmPassword) {
     return {
       success: false,
-      error: "Wszystkie pola są wymagane."
+      error: 'Wszystkie pola są wymagane.',
     };
   }
 
   if (newPassword !== confirmPassword) {
     return {
       success: false,
-      error: "Nowe hasła nie są identyczne."
+      error: 'Nowe hasła nie są identyczne.',
     };
   }
 
   if (newPassword.length < 8) {
     return {
       success: false,
-      error: "Nowe hasło musi mieć minimum 8 znaków."
+      error: 'Nowe hasło musi mieć minimum 8 znaków.',
     };
   }
 
@@ -260,7 +266,7 @@ export async function changePassword(formData: FormData) {
   if (!session) {
     return {
       success: false,
-      error: "Brak aktywnej sesji."
+      error: 'Brak aktywnej sesji.',
     };
   }
 
@@ -268,26 +274,32 @@ export async function changePassword(formData: FormData) {
 
   if (USE_SQLITE) {
     const db = getSQLiteDB();
-    const result = db.prepare("SELECT * FROM users WHERE id = ? AND password_hash = ?").get(session.userId, currentPasswordHash) as User | undefined;
+    const result = db
+      .prepare('SELECT * FROM users WHERE id = ? AND password_hash = ?')
+      .get(session.userId, currentPasswordHash) as User | undefined;
 
     if (!result) {
       return {
         success: false,
-        error: "Nieprawidłowe obecne hasło."
+        error: 'Nieprawidłowe obecne hasło.',
       };
     }
 
     const newPasswordHash = hashPassword(newPassword);
-    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?").run(newPasswordHash, session.userId);
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(
+      newPasswordHash,
+      session.userId
+    );
   } else {
     const sql = getDB();
-    const result = await sql`SELECT * FROM users WHERE id = ${session.userId} AND password_hash = ${currentPasswordHash}`;
+    const result =
+      await sql`SELECT * FROM users WHERE id = ${session.userId} AND password_hash = ${currentPasswordHash}`;
 
     if (result.length === 0) {
       await sql.end();
       return {
         success: false,
-        error: "Nieprawidłowe obecne hasło."
+        error: 'Nieprawidłowe obecne hasło.',
       };
     }
 
@@ -298,19 +310,19 @@ export async function changePassword(formData: FormData) {
 
   return {
     success: true,
-    message: "Hasło zostało zmienione."
+    message: 'Hasło zostało zmienione.',
   };
 }
 
 export async function logout() {
   const cookieStore = cookies();
-  cookieStore.delete("auth_session");
-  redirect("/");
+  cookieStore.delete('auth_session');
+  redirect('/');
 }
 
 export async function getSession() {
   const cookieStore = cookies();
-  const sessionCookie = cookieStore.get("auth_session")?.value;
+  const sessionCookie = cookieStore.get('auth_session')?.value;
 
   if (!sessionCookie) return null;
 
@@ -331,11 +343,14 @@ export async function getCurrentUser() {
 
   if (USE_SQLITE) {
     const db = getSQLiteDB();
-    const result = db.prepare("SELECT id, email, must_change_password, last_login FROM users WHERE id = ?").get(session.userId) as User | undefined;
+    const result = db
+      .prepare('SELECT id, email, must_change_password, last_login FROM users WHERE id = ?')
+      .get(session.userId) as User | undefined;
     return result || null;
   } else {
     const sql = getDB();
-    const result = await sql`SELECT id, email, must_change_password, last_login FROM users WHERE id = ${session.userId}`;
+    const result =
+      await sql`SELECT id, email, must_change_password, last_login FROM users WHERE id = ${session.userId}`;
     await sql.end();
 
     if (result.length === 0) return null;

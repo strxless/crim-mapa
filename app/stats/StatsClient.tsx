@@ -2,17 +2,57 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ComposedChart,
+} from 'recharts';
 
-import { Document, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, Packer, TextRun } from 'docx';
+import {
+  Document,
+  Paragraph,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  AlignmentType,
+  Packer,
+  TextRun,
+} from 'docx';
 import { saveAs } from 'file-saver';
 
 import * as XLSX from 'xlsx';
 
-const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+const COLORS = [
+  '#3b82f6',
+  '#ef4444',
+  '#10b981',
+  '#f59e0b',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#f97316',
+];
 
 type StatsData = {
-  daily: Array<{ date: string; count: number; cumulative: number; categories: Record<string, number>; updates?: number }>;
+  daily: Array<{
+    date: string;
+    count: number;
+    cumulative: number;
+    categories: Record<string, number>;
+    updates?: number;
+  }>;
   total: number;
   categories: Record<string, number>;
   firstPin: string | null;
@@ -53,40 +93,39 @@ const normalizePolishName = (name: string): string => {
     .replace(/ż/g, 'z');
 };
 
-
 const extractNames = (nameField: string): string[] => {
   if (!nameField) return [];
 
   // Remove diacritics, lowercase, trim
   const normalize = (s: string) =>
     s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
 
   // Absolute truth table
   const CANONICAL_NAMES: { name: string; match: (n: string) => boolean }[] = [
     {
-      name: "Łukasz",
-      match: n => n === "lukasz"
+      name: 'Łukasz',
+      match: (n) => n === 'lukasz',
     },
     {
-      name: "Maksymilian",
-      match: n => n.startsWith("maks")
+      name: 'Maksymilian',
+      match: (n) => n.startsWith('maks'),
     },
     {
-      name: "Dawid",
-      match: n =>
-        n.startsWith("daw") || // dawid, dawyt, dawyd
-        n.startsWith("dav")    // david, davit
+      name: 'Dawid',
+      match: (n) =>
+        n.startsWith('daw') || // dawid, dawyt, dawyd
+        n.startsWith('dav'), // david, davit
     },
     {
-      name: "Julia",
-      match: n =>
-        n.startsWith("jul") || // julia, julja, jula
-        n.startsWith("yul")    // yulia
-    }
+      name: 'Julia',
+      match: (n) =>
+        n.startsWith('jul') || // julia, julja, jula
+        n.startsWith('yul'), // yulia
+    },
   ];
 
   const canonicalize = (raw: string): string => {
@@ -102,17 +141,16 @@ const extractNames = (nameField: string): string[] => {
 
   const names = nameField
     .split(/[,;]+\s*|\s+(?:i|oraz|and|\+|&)\s+/)
-    .map(n => n.trim())
+    .map((n) => n.trim())
     .filter(Boolean)
-    .map(n => {
-      n = n.replace(/\.$/, "").trim();
+    .map((n) => {
+      n = n.replace(/\.$/, '').trim();
       const firstName = n.split(/\s+/)[0];
       return canonicalize(firstName);
     });
 
   return [...new Set(names)];
 };
-
 
 export default function StatsClient({ stats }: { stats: StatsData }) {
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
@@ -133,113 +171,127 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const exportPinToDocx = async (pin: Pin) => {
-  try {
-    // Get all unique names from visits
-    const allNames = pin.visits?.map(v => extractNames(v.name)).flat() || [];
-    const uniqueNames = [...new Set(allNames)].join(', ') || 'Brak danych';
+    try {
+      // Get all unique names from visits
+      const allNames = pin.visits?.map((v) => extractNames(v.name)).flat() || [];
+      const uniqueNames = [...new Set(allNames)].join(', ') || 'Brak danych';
 
-    // Create visit entries - each visit on a new line with bold date
-    // Create visit entries - each visit on a new line with bold date
-const visitParagraphs = pin.visits?.length 
-  ? pin.visits.map(visit => {
-      const visitDate = new Date(visit.visitedAt).toLocaleDateString('pl-PL');
-      const note = visit.note || 'Brak notatki';
-      
-      return new Paragraph({
-        children: [
-          new TextRun({
-            text: `${visitDate}: `,
-            bold: true,
-          }),
-          new TextRun({
-            text: note,
-            bold: false,
-          }),
-        ],
-        spacing: { after: 200 },
-      });
-    })
-  : [new Paragraph({ 
-      children: [new TextRun({ text: 'Brak wizyt', bold: false })]
-    })];
+      // Create visit entries - each visit on a new line with bold date
+      // Create visit entries - each visit on a new line with bold date
+      const visitParagraphs = pin.visits?.length
+        ? pin.visits.map((visit) => {
+            const visitDate = new Date(visit.visitedAt).toLocaleDateString('pl-PL');
+            const note = visit.note || 'Brak notatki';
 
-    // Create the document
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          // Title
-          new Paragraph({
+            return new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${visitDate}: `,
+                  bold: true,
+                }),
+                new TextRun({
+                  text: note,
+                  bold: false,
+                }),
+              ],
+              spacing: { after: 200 },
+            });
+          })
+        : [
+            new Paragraph({
+              children: [new TextRun({ text: 'Brak wizyt', bold: false })],
+            }),
+          ];
+
+      // Create the document
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
             children: [
-              new TextRun({
-                text: `INTERAKCJE W "${pin.title}"`,
-                bold: true,
+              // Title
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `INTERAKCJE W "${pin.title}"`,
+                    bold: true,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 400 },
+              }),
+
+              // Main Table
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                  // Row 1: Streetworker and Names
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        children: [
+                          new Paragraph({
+                            children: [
+                              new TextRun({ text: 'Streetworker/Streetworkerka', bold: true }),
+                            ],
+                          }),
+                        ],
+                        width: { size: 50, type: WidthType.PERCENTAGE },
+                      }),
+                      new TableCell({
+                        children: [
+                          new Paragraph({
+                            children: [new TextRun({ text: uniqueNames, bold: true })],
+                          }),
+                        ],
+                        width: { size: 50, type: WidthType.PERCENTAGE },
+                      }),
+                    ],
+                  }),
+
+                  // Row 2: Header
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        children: [
+                          new Paragraph({
+                            children: [
+                              new TextRun({ text: 'Data i opis podjętych działań', bold: true }),
+                            ],
+                            alignment: AlignmentType.CENTER,
+                          }),
+                        ],
+                        columnSpan: 2,
+                      }),
+                    ],
+                  }),
+
+                  // Row 3: Visit details (each on new line)
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        children: visitParagraphs,
+                        columnSpan: 2,
+                      }),
+                    ],
+                  }),
+                ],
               }),
             ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 400 },
-          }),
-
-          // Main Table
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              // Row 1: Streetworker and Names
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [new Paragraph({
-                      children: [new TextRun({ text: "Streetworker/Streetworkerka", bold: true })],
-                    })],
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                  }),
-                  new TableCell({
-                    children: [new Paragraph({
-                      children: [new TextRun({ text: uniqueNames, bold: true })],
-                    })],
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                  }),
-                ],
-              }),
-
-              // Row 2: Header
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [new Paragraph({
-                      children: [new TextRun({ text: "Data i opis podjętych działań", bold: true })],
-                      alignment: AlignmentType.CENTER,
-                    })],
-                    columnSpan: 2,
-                  }),
-                ],
-              }),
-
-              // Row 3: Visit details (each on new line)
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: visitParagraphs,
-                    columnSpan: 2,
-                  }),
-                ],
-              }),
-            ],
-          }),
+          },
         ],
-      }],
-    });
+      });
 
-    // Generate and save the document
-    const blob = await Packer.toBlob(doc);
-    const currentDate = new Date().toLocaleDateString('pl-PL').replace(/\./g, '-');
-    const fileName = `${pin.title.replace(/[^a-z0-9]/gi, '_')}_interakcje_${currentDate}.docx`;
-    saveAs(blob, fileName);
-  } catch (error) {
-    console.error('Błąd podczas eksportu do DOCX:', error);
-    alert('Wystąpił błąd podczas eksportu dokumentu');
-  }
-};
+      // Generate and save the document
+      const blob = await Packer.toBlob(doc);
+      const currentDate = new Date().toLocaleDateString('pl-PL').replace(/\./g, '-');
+      const fileName = `${pin.title.replace(/[^a-z0-9]/gi, '_')}_interakcje_${currentDate}.docx`;
+      saveAs(blob, fileName);
+    } catch (error) {
+      console.error('Błąd podczas eksportu do DOCX:', error);
+      alert('Wystąpił błąd podczas eksportu dokumentu');
+    }
+  };
 
   const refreshStats = async () => {
     setIsLoading(true);
@@ -282,27 +334,27 @@ const visitParagraphs = pin.visits?.length
         if (!pin.visits || pin.visits.length === 0) {
           mainData.push({
             'Tytuł pinezki': pin.title,
-            'Kategoria': pin.category,
-            'Opis': pin.description || '',
+            Kategoria: pin.category,
+            Opis: pin.description || '',
             'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
             'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL'),
             'Liczba wizyt': 0,
-            'Odwiedzający': '',
+            Odwiedzający: '',
             'Data wizyty': '',
-            'Notatka z wizyty': ''
+            'Notatka z wizyty': '',
           });
         } else {
           pin.visits.forEach((visit: Visit, index: number) => {
             mainData.push({
               'Tytuł pinezki': pin.title,
-              'Kategoria': pin.category,
-              'Opis': pin.description || '',
+              Kategoria: pin.category,
+              Opis: pin.description || '',
               'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
               'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL'),
               'Liczba wizyt': pin.visitsCount || pin.visits?.length || 0,
-              'Odwiedzający': visit.name,
+              Odwiedzający: visit.name,
               'Data wizyty': new Date(visit.visitedAt).toLocaleDateString('pl-PL'),
-              'Notatka z wizyty': visit.note || ''
+              'Notatka z wizyty': visit.note || '',
             });
           });
         }
@@ -310,8 +362,15 @@ const visitParagraphs = pin.visits?.length
 
       const ws1 = XLSX.utils.json_to_sheet(mainData);
       ws1['!cols'] = [
-        { wch: 35 }, { wch: 20 }, { wch: 40 }, { wch: 18 }, { wch: 18 },
-        { wch: 12 }, { wch: 25 }, { wch: 18 }, { wch: 50 }
+        { wch: 35 },
+        { wch: 20 },
+        { wch: 40 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 12 },
+        { wch: 25 },
+        { wch: 18 },
+        { wch: 50 },
       ];
 
       if (mainData.length > 0) {
@@ -319,18 +378,18 @@ const visitParagraphs = pin.visits?.length
       }
 
       const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1'];
-      headerCells.forEach(cell => {
+      headerCells.forEach((cell) => {
         if (ws1[cell]) {
           ws1[cell].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "4472C4" } },
-            alignment: { horizontal: "center", vertical: "center", wrapText: true },
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '4472C4' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
             border: {
-              top: { style: "thin", color: { rgb: "000000" } },
-              bottom: { style: "thin", color: { rgb: "000000" } },
-              left: { style: "thin", color: { rgb: "000000" } },
-              right: { style: "thin", color: { rgb: "000000" } }
-            }
+              top: { style: 'thin', color: { rgb: '000000' } },
+              bottom: { style: 'thin', color: { rgb: '000000' } },
+              left: { style: 'thin', color: { rgb: '000000' } },
+              right: { style: 'thin', color: { rgb: '000000' } },
+            },
           };
         }
       });
@@ -340,12 +399,12 @@ const visitParagraphs = pin.visits?.length
 
       // ========== SUMMARY SHEET ==========
       const summaryData = data.pins.map((pin: Pin) => ({
-        'Tytuł': pin.title,
-        'Kategoria': pin.category,
-        'Opis': pin.description || '',
+        Tytuł: pin.title,
+        Kategoria: pin.category,
+        Opis: pin.description || '',
         'Liczba wizyt': pin.visitsCount || 0,
         'Data utworzenia': new Date(pin.createdAt).toLocaleDateString('pl-PL'),
-        'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL')
+        'Ostatnia aktualizacja': new Date(pin.updatedAt).toLocaleDateString('pl-PL'),
       }));
 
       const ws2 = XLSX.utils.json_to_sheet(summaryData);
@@ -356,12 +415,12 @@ const visitParagraphs = pin.visits?.length
       }
 
       const summaryHeaders = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1'];
-      summaryHeaders.forEach(cell => {
+      summaryHeaders.forEach((cell) => {
         if (ws2[cell]) {
           ws2[cell].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "70AD47" } },
-            alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '70AD47' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
           };
         }
       });
@@ -375,10 +434,13 @@ const visitParagraphs = pin.visits?.length
         pin.visits?.forEach((visit: Visit) => {
           visitsData.push({
             'Tytuł pinezki': pin.title,
-            'Kategoria': pin.category,
-            'Odwiedzający': visit.name,
-            'Data wizyty': new Date(visit.visitedAt).toLocaleDateString('pl-PL') + ' ' + new Date(visit.visitedAt).toLocaleTimeString('pl-PL'),
-            'Notatka': visit.note || ''
+            Kategoria: pin.category,
+            Odwiedzający: visit.name,
+            'Data wizyty':
+              new Date(visit.visitedAt).toLocaleDateString('pl-PL') +
+              ' ' +
+              new Date(visit.visitedAt).toLocaleTimeString('pl-PL'),
+            Notatka: visit.note || '',
           });
         });
       });
@@ -391,12 +453,12 @@ const visitParagraphs = pin.visits?.length
       }
 
       const visitHeaders = ['A1', 'B1', 'C1', 'D1', 'E1'];
-      visitHeaders.forEach(cell => {
+      visitHeaders.forEach((cell) => {
         if (ws3[cell]) {
           ws3[cell].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "FFC000" } },
-            alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: 'FFC000' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
           };
         }
       });
@@ -407,9 +469,9 @@ const visitParagraphs = pin.visits?.length
       // ========== STATS SHEET ==========
       const categoryStats = Object.entries(filteredStats.categories)
         .map(([name, count]) => ({
-          'Kategoria': name,
+          Kategoria: name,
           'Liczba pinezek': count,
-          'Procent': ((count / filteredStats.total) * 100).toFixed(2) + '%'
+          Procent: ((count / filteredStats.total) * 100).toFixed(2) + '%',
         }))
         .sort((a, b) => b['Liczba pinezek'] - a['Liczba pinezek']);
 
@@ -421,12 +483,12 @@ const visitParagraphs = pin.visits?.length
       }
 
       const statHeaders = ['A1', 'B1', 'C1'];
-      statHeaders.forEach(cell => {
+      statHeaders.forEach((cell) => {
         if (ws4[cell]) {
           ws4[cell].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "9966FF" } },
-            alignment: { horizontal: "center", vertical: "center" }
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '9966FF' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
           };
         }
       });
@@ -436,7 +498,6 @@ const visitParagraphs = pin.visits?.length
 
       const fileName = `CRiIM_Mapa_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
-
     } catch (error) {
       console.error('Błąd podczas eksportu:', error);
       alert('Wystąpił błąd podczas eksportu danych');
@@ -451,7 +512,7 @@ const visitParagraphs = pin.visits?.length
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
 
-    const filteredDaily = currentStats.daily.filter(day => {
+    const filteredDaily = currentStats.daily.filter((day) => {
       const dayDate = new Date(day.date);
       if (start && dayDate < start) return false;
       if (end && dayDate > end) return false;
@@ -462,7 +523,7 @@ const visitParagraphs = pin.visits?.length
     let total = 0;
     let totalUpdates = 0;
 
-    filteredDaily.forEach(day => {
+    filteredDaily.forEach((day) => {
       total += day.count;
       totalUpdates += day.updates || 0;
       Object.entries(day.categories).forEach(([cat, count]) => {
@@ -471,7 +532,7 @@ const visitParagraphs = pin.visits?.length
     });
 
     let cumulative = 0;
-    const dailyWithCumulative = filteredDaily.map(day => {
+    const dailyWithCumulative = filteredDaily.map((day) => {
       cumulative += day.count;
       return { ...day, cumulative };
     });
@@ -482,94 +543,90 @@ const visitParagraphs = pin.visits?.length
       categories: filteredCategories,
       firstPin: filteredDaily.length > 0 ? filteredDaily[0].date : null,
       lastPin: filteredDaily.length > 0 ? filteredDaily[filteredDaily.length - 1].date : null,
-      totalUpdates
+      totalUpdates,
     };
   }, [currentStats, startDate, endDate]);
 
   const filteredPins = useMemo(() => {
-  let filtered = pinsData;
-  
-  // Category filter
-  if (selectedCategories.length > 0) {
-    filtered = filtered.filter(pin => selectedCategories.includes(pin.category));
-  }
-  
-  // Name filter - check if any visit has a matching name
-  if (selectedNames.length > 0) {
-    filtered = filtered.filter(pin => {
-      if (!pin.visits || pin.visits.length === 0) return false;
-      
-      return pin.visits.some(visit => {
-        const visitNames = extractNames(visit.name);
-        const normalizedVisitNames = visitNames.map(normalizePolishName);
-        const normalizedSelectedNames = selectedNames.map(normalizePolishName);
-        
-        return normalizedSelectedNames.some(selectedName => 
-          normalizedVisitNames.includes(selectedName)
-        );
+    let filtered = pinsData;
+
+    // Category filter
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter((pin) => selectedCategories.includes(pin.category));
+    }
+
+    // Name filter - check if any visit has a matching name
+    if (selectedNames.length > 0) {
+      filtered = filtered.filter((pin) => {
+        if (!pin.visits || pin.visits.length === 0) return false;
+
+        return pin.visits.some((visit) => {
+          const visitNames = extractNames(visit.name);
+          const normalizedVisitNames = visitNames.map(normalizePolishName);
+          const normalizedSelectedNames = selectedNames.map(normalizePolishName);
+
+          return normalizedSelectedNames.some((selectedName) =>
+            normalizedVisitNames.includes(selectedName)
+          );
+        });
       });
-    });
-  }
-  
-  // Search term filter
-  if (searchTerm) {
-    const term = searchTerm.toLowerCase();
-    filtered = filtered.filter(pin => 
-      pin.title.toLowerCase().includes(term) ||
-      pin.category.toLowerCase().includes(term) ||
-      pin.description?.toLowerCase().includes(term)
-    );
-  }
-  
-  return filtered;
-}, [pinsData, searchTerm, selectedCategories, selectedNames]);
+    }
+
+    // Search term filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (pin) =>
+          pin.title.toLowerCase().includes(term) ||
+          pin.category.toLowerCase().includes(term) ||
+          pin.description?.toLowerCase().includes(term)
+      );
+    }
+
+    return filtered;
+  }, [pinsData, searchTerm, selectedCategories, selectedNames]);
 
   const suggestions = useMemo(() => {
     if (!searchTerm || searchTerm.length < 2) return [];
     const term = searchTerm.toLowerCase();
     return pinsData
-      .filter(pin => 
-        pin.title.toLowerCase().includes(term) ||
-        pin.category.toLowerCase().includes(term)
+      .filter(
+        (pin) => pin.title.toLowerCase().includes(term) || pin.category.toLowerCase().includes(term)
       )
       .slice(0, 5);
   }, [pinsData, searchTerm]);
 
   const { availableCategories, availableNames } = useMemo(() => {
-  const categories = new Set(pinsData.map(pin => pin.category));
-  const namesSet = new Set<string>();
-  
-  // Extract all unique names from visits
-  pinsData.forEach(pin => {
-    pin.visits?.forEach(visit => {
-      const names = extractNames(visit.name);
-      names.forEach(name => namesSet.add(name));
+    const categories = new Set(pinsData.map((pin) => pin.category));
+    const namesSet = new Set<string>();
+
+    // Extract all unique names from visits
+    pinsData.forEach((pin) => {
+      pin.visits?.forEach((visit) => {
+        const names = extractNames(visit.name);
+        names.forEach((name) => namesSet.add(name));
+      });
     });
-  });
-  
-  return {
-    availableCategories: Array.from(categories).sort(),
-    availableNames: Array.from(namesSet).sort()
-  };
-}, [pinsData]);
+
+    return {
+      availableCategories: Array.from(categories).sort(),
+      availableNames: Array.from(namesSet).sort(),
+    };
+  }, [pinsData]);
 
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   };
   const toggleName = (name: string) => {
-  setSelectedNames(prev => 
-    prev.includes(name) 
-      ? prev.filter(n => n !== name)
-      : [...prev, name]
-  );
-};
+    setSelectedNames((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  };
 
   // Calendar helpers
-    const getDaysInMonth = (date: Date) => {
+  const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -577,7 +634,7 @@ const visitParagraphs = pin.visits?.length
     const daysInMonth = lastDay.getDate();
     // Convert US day (0=Sun) to EU day (0=Mon): subtract 1 and handle Sunday wrap
     const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
-    
+
     return { daysInMonth, startingDayOfWeek, year, month };
   };
 
@@ -587,12 +644,12 @@ const visitParagraphs = pin.visits?.length
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    
-    const dayData = currentStats.daily.find(d => d.date === dateStr);
-    
+
+    const dayData = currentStats.daily.find((d) => d.date === dateStr);
+
     if (!dayData) return { pins: [], visits: [], created: 0, visited: 0 };
-    
-    const dayPins = pinsData.filter(pin => {
+
+    const dayPins = pinsData.filter((pin) => {
       const createdDate = new Date(pin.createdAt);
       const createdYear = createdDate.getFullYear();
       const createdMonth = String(createdDate.getMonth() + 1).padStart(2, '0');
@@ -600,10 +657,10 @@ const visitParagraphs = pin.visits?.length
       const createdStr = `${createdYear}-${createdMonth}-${createdDay}`;
       return createdStr === dateStr;
     });
-    
-    const dayVisits: Array<{pin: Pin, visit: Visit}> = [];
-    pinsData.forEach(pin => {
-      pin.visits?.forEach(visit => {
+
+    const dayVisits: Array<{ pin: Pin; visit: Visit }> = [];
+    pinsData.forEach((pin) => {
+      pin.visits?.forEach((visit) => {
         const visitDate = new Date(visit.visitedAt);
         const visitYear = visitDate.getFullYear();
         const visitMonth = String(visitDate.getMonth() + 1).padStart(2, '0');
@@ -614,12 +671,12 @@ const visitParagraphs = pin.visits?.length
         }
       });
     });
-    
+
     return {
       pins: dayPins,
       visits: dayVisits,
       created: dayData.count,
-      visited: dayData.updates || 0
+      visited: dayData.updates || 0,
     };
   };
 
@@ -632,6 +689,49 @@ const visitParagraphs = pin.visits?.length
     return 'bg-green-700';
   };
 
+  const getWeekNumber = (date: Date) => {
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const dayOfMonth = date.getDate();
+    const firstDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
+    return Math.floor((dayOfMonth + firstDayOfWeek - 1) / 7);
+  };
+
+  const getMonthSummary = (year: number, month: number) => {
+    const monthEnd = new Date(year, month + 1, 0);
+
+    let totalCreated = 0;
+    let totalVisited = 0;
+
+    for (let day = 1; day <= monthEnd.getDate(); day++) {
+      const date = new Date(year, month, day);
+      const activity = getActivityForDate(date);
+      totalCreated += activity.created;
+      totalVisited += activity.visited;
+    }
+
+    return { totalCreated, totalVisited };
+  };
+
+  const getWeekSummary = (year: number, month: number, weekNum: number) => {
+    const firstDayOfMonth = new Date(year, month, 1);
+    const firstDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
+
+    const weekStartDay = weekNum * 7 - firstDayOfWeek + 1;
+    const weekEndDay = Math.min(weekStartDay + 6, new Date(year, month + 1, 0).getDate());
+
+    let totalCreated = 0;
+    let totalVisited = 0;
+
+    for (let day = Math.max(1, weekStartDay); day <= weekEndDay; day++) {
+      const date = new Date(year, month, day);
+      const activity = getActivityForDate(date);
+      totalCreated += activity.created;
+      totalVisited += activity.visited;
+    }
+
+    return { totalCreated, totalVisited };
+  };
+
   const prevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
@@ -640,34 +740,49 @@ const visitParagraphs = pin.visits?.length
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  const categoryData = Object.entries(filteredStats.categories).map(([name, value]) => ({
-    name,
-    value
-  })).sort((a, b) => b.value - a.value);
+  const categoryData = Object.entries(filteredStats.categories)
+    .map(([name, value]) => ({
+      name,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
 
-  const growthRate = filteredStats.daily.length > 1
-    ? ((filteredStats.daily[filteredStats.daily.length - 1].cumulative - filteredStats.daily[0].cumulative) / Math.max(filteredStats.daily[0].cumulative, 1) * 100).toFixed(1)
-    : 0;
+  const growthRate =
+    filteredStats.daily.length > 1
+      ? (
+          ((filteredStats.daily[filteredStats.daily.length - 1].cumulative -
+            filteredStats.daily[0].cumulative) /
+            Math.max(filteredStats.daily[0].cumulative, 1)) *
+          100
+        ).toFixed(1)
+      : 0;
 
   const avgPerDay = (filteredStats.total / Math.max(filteredStats.daily.length, 1)).toFixed(1);
 
-  const maxDailyPins = Math.max(...filteredStats.daily.map(d => d.count), 0);
-  const maxDailyUpdates = Math.max(...filteredStats.daily.map(d => d.updates || 0), 0);
-  const avgUpdatesPerDay = ((filteredStats.totalUpdates || 0) / Math.max(filteredStats.daily.length, 1)).toFixed(1);
+  const maxDailyPins = Math.max(...filteredStats.daily.map((d) => d.count), 0);
+  const maxDailyUpdates = Math.max(...filteredStats.daily.map((d) => d.updates || 0), 0);
+  const avgUpdatesPerDay = (
+    (filteredStats.totalUpdates || 0) / Math.max(filteredStats.daily.length, 1)
+  ).toFixed(1);
 
   const totalActivity = filteredStats.total + (filteredStats.totalUpdates || 0);
-  const activityRatio = filteredStats.total > 0 ? ((filteredStats.totalUpdates || 0) / filteredStats.total).toFixed(2) : '0';
+  const activityRatio =
+    filteredStats.total > 0
+      ? ((filteredStats.totalUpdates || 0) / filteredStats.total).toFixed(2)
+      : '0';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-3 bg-gradient-to-br from-slate-50 to-slate-100 sm:p-4 md:p-8">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-4 sm:mb-6 md:mb-8">
           <div className="mb-3 sm:mb-4">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-1 sm:mb-2">
+            <h1 className="mb-1 text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl text-slate-900 sm:mb-2">
               Statystyki CRiIM Mapa
             </h1>
-            <p className="text-xs sm:text-sm md:text-base text-slate-600">Kompleksowa analiza pinezek i aktywności</p>
+            <p className="text-xs sm:text-sm md:text-base text-slate-600">
+              Kompleksowa analiza pinezek i aktywności
+            </p>
           </div>
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-2 gap-2">
@@ -686,21 +801,31 @@ const visitParagraphs = pin.visits?.length
               >
                 {showCalendar ? (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
                     </svg>
                     Statystyki
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
                     </svg>
                     Kalendarz
                   </>
                 )}
               </button>
-              
+
               <button
                 onClick={() => {
                   if (showPinsData) {
@@ -715,30 +840,56 @@ const visitParagraphs = pin.visits?.length
               >
                 {loadingPins ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Ładowanie...
                   </>
                 ) : showPinsData ? (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
                     </svg>
                     Statystyki
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     Dane pinów
                   </>
                 )}
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={exportToExcel}
@@ -747,23 +898,44 @@ const visitParagraphs = pin.visits?.length
               >
                 {isExporting ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     <span className="hidden sm:inline">Eksportowanie...</span>
                     <span className="sm:hidden">...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     Excel
                   </>
                 )}
               </button>
-              
+
               <button
                 onClick={refreshStats}
                 disabled={isLoading}
@@ -771,17 +943,38 @@ const visitParagraphs = pin.visits?.length
               >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     <span className="hidden sm:inline">Odświeżanie...</span>
                     <span className="sm:hidden">...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                     Odśwież
                   </>
@@ -794,56 +987,97 @@ const visitParagraphs = pin.visits?.length
         {/* Calendar View */}
         {showCalendar ? (
           <div className="space-y-3 sm:space-y-4">
-            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+            <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
               {/* Month Navigation */}
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={prevMonth}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+                <h2 className="text-lg font-bold sm:text-xl md:text-2xl text-slate-900">
                   {currentMonth.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}
                 </h2>
                 <button
                   onClick={nextMonth}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 024 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
               </div>
 
+              {/* Month Summary */}
+              {(() => {
+                const { year, month } = getDaysInMonth(currentMonth);
+                const monthSummary = getMonthSummary(year, month);
+                return (
+                  <div className="p-2 mb-4 border-2 border-indigo-200 rounded-lg sm:p-3 bg-gradient-to-r from-indigo-50 to-purple-50">
+                    <h3 className="mb-2 text-xs font-semibold sm:text-sm text-slate-700">
+                      Podsumowanie miesiąca
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="p-2 bg-white border border-blue-200 rounded-lg">
+                        <div className="text-[10px] sm:text-xs text-slate-600">Nowe pinezki</div>
+                        <div className="text-xl font-bold text-blue-600 sm:text-2xl">
+                          +{monthSummary.totalCreated}
+                        </div>
+                      </div>
+                      <div className="p-2 bg-white border rounded-lg border-amber-200">
+                        <div className="text-[10px] sm:text-xs text-slate-600">Wizyty</div>
+                        <div className="text-xl font-bold sm:text-2xl text-amber-600">
+                          ↻{monthSummary.totalVisited}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              <div className="mb-4 grid grid-cols-7 gap-1 sm:gap-2">
                 {/* Day headers */}
                 {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((day) => (
-                  <div key={day} className="text-center font-semibold text-slate-600 text-xs sm:text-sm p-1 sm:p-2">
+                  <div
+                    key={day}
+                    className="p-1 text-xs font-semibold text-center text-slate-600 sm:text-sm sm:p-2"
+                  >
                     {day}
                   </div>
                 ))}
-                
+
                 {/* Calendar days */}
                 {(() => {
-                  const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+                  const { daysInMonth, startingDayOfWeek, year, month } =
+                    getDaysInMonth(currentMonth);
                   const days = [];
-                  
+
                   // Empty cells before month starts
                   for (let i = 0; i < startingDayOfWeek; i++) {
                     days.push(<div key={`empty-${i}`} className="aspect-square" />);
                   }
-                  
+
                   // Days of the month
                   for (let day = 1; day <= daysInMonth; day++) {
                     const date = new Date(year, month, day);
                     const activity = getActivityForDate(date);
                     const activityLevel = getActivityLevel(activity.created, activity.visited);
                     const isSelected = selectedDay?.toDateString() === date.toDateString();
-                    
+
                     days.push(
                       <button
                         key={day}
@@ -854,107 +1088,181 @@ const visitParagraphs = pin.visits?.length
                             : 'border-transparent hover:border-slate-300'
                         } ${activityLevel}`}
                       >
-                        <div className="text-xs sm:text-sm font-medium text-slate-900">{day}</div>
+                        <div className="text-xs font-medium sm:text-sm text-slate-900">{day}</div>
                         {(activity.created > 0 || activity.visited > 0) && (
                           <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 space-y-0.5">
                             {activity.created > 0 && (
-                              <div className="text-blue-700 font-semibold">+{activity.created}</div>
+                              <div className="font-semibold text-blue-700">+{activity.created}</div>
                             )}
                             {activity.visited > 0 && (
-                              <div className="text-amber-700 font-semibold">↻{activity.visited}</div>
+                              <div className="font-semibold text-amber-700">
+                                ↻{activity.visited}
+                              </div>
                             )}
                           </div>
                         )}
                       </button>
                     );
                   }
-                  
+
                   return days;
                 })()}
               </div>
 
+              {/* Weekly Summaries - Below Calendar on Mobile, Side on Desktop */}
+              {(() => {
+                const { year, month, daysInMonth } = getDaysInMonth(currentMonth);
+                const weeks: Array<{
+                  weekNum: number;
+                  summary: { totalCreated: number; totalVisited: number };
+                }> = [];
+
+                // Calculate number of weeks
+                const firstDate = new Date(year, month, 1);
+                const lastDate = new Date(year, month, daysInMonth);
+                const firstWeek = getWeekNumber(firstDate);
+                const lastWeek = getWeekNumber(lastDate);
+
+                for (let w = firstWeek; w <= lastWeek; w++) {
+                  const summary = getWeekSummary(year, month, w);
+                  weeks.push({ weekNum: w, summary });
+                }
+
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold sm:text-sm text-slate-700">
+                      Podsumowania tygodniowe
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                      {weeks.map(({ weekNum, summary }) => (
+                        <div
+                          key={weekNum}
+                          className="p-2 border-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border-slate-300"
+                        >
+                          <div className="text-[10px] sm:text-xs text-slate-600 font-semibold mb-1">
+                            Tydzień {weekNum + 1}
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1">
+                              <div className="text-xs font-bold text-blue-700 sm:text-sm">
+                                +{summary.totalCreated}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="text-xs font-bold sm:text-sm text-amber-700">
+                                ↻{summary.totalVisited}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Legend */}
-              <div className="mt-4 flex flex-wrap gap-3 text-xs sm:text-sm text-slate-600">
+              <div className="flex flex-wrap pt-4 mt-4 text-xs border-t border-slate-200 gap-2 sm:gap-3 sm:text-sm text-slate-600">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-blue-100 rounded"></div>
+                  <div className="w-3 h-3 bg-blue-100 rounded sm:w-4 sm:h-4"></div>
                   <span>+X = Nowe piny</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-amber-100 rounded"></div>
+                  <div className="w-3 h-3 rounded sm:w-4 sm:h-4 bg-amber-100"></div>
                   <span>↻X = Wizyty</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
-                    <div className="w-3 h-3 bg-slate-50 border border-slate-200 rounded"></div>
-                    <div className="w-3 h-3 bg-green-100 rounded"></div>
-                    <div className="w-3 h-3 bg-green-300 rounded"></div>
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    <div className="w-3 h-3 bg-green-700 rounded"></div>
+                    <div className="w-2 h-2 border rounded sm:w-3 sm:h-3 bg-slate-50 border-slate-200"></div>
+                    <div className="w-2 h-2 bg-green-100 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 bg-green-300 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 bg-green-500 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 bg-green-700 rounded sm:w-3 sm:h-3"></div>
                   </div>
-                  <span>Poziom aktywności</span>
+                  <span className="text-[10px] sm:text-xs">Aktywność</span>
                 </div>
               </div>
             </div>
 
             {/* Selected Day Details */}
             {selectedDay && (
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 mb-4">
-                  {selectedDay.toLocaleDateString('pl-PL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+                <h3 className="mb-4 text-base font-bold sm:text-lg md:text-xl text-slate-900">
+                  {selectedDay.toLocaleDateString('pl-PL', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                 </h3>
-                
+
                 {(() => {
                   const activity = getActivityForDate(selectedDay);
-                  
+
                   if (activity.created === 0 && activity.visited === 0) {
                     return (
-                      <p className="text-slate-500 text-center py-8">Brak aktywności tego dnia</p>
+                      <p className="py-8 text-center text-slate-500">Brak aktywności tego dnia</p>
                     );
                   }
-                  
+
                   return (
                     <div className="space-y-4">
                       {/* New Pins */}
                       {activity.pins.length > 0 && (
                         <div>
-                          <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                          <h4 className="flex items-center mb-2 text-sm font-semibold sm:text-base text-slate-900 gap-2">
+                            <span className="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded">
                               +{activity.created}
                             </span>
                             Nowe pinezki
                           </h4>
                           <div className="space-y-2">
-                            {activity.pins.map(pin => (
-                              <div key={pin.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                <div className="font-medium text-slate-900 text-sm sm:text-base">{pin.title}</div>
-                                <div className="text-xs text-slate-600 mt-1">{pin.category}</div>
+                            {activity.pins.map((pin) => (
+                              <div
+                                key={pin.id}
+                                className="p-3 border border-blue-200 rounded-lg bg-blue-50"
+                              >
+                                <div className="text-sm font-medium text-slate-900 sm:text-base">
+                                  {pin.title}
+                                </div>
+                                <div className="mt-1 text-xs text-slate-600">{pin.category}</div>
                                 {pin.description && (
-                                  <div className="text-xs text-slate-500 mt-1">{pin.description}</div>
+                                  <div className="mt-1 text-xs text-slate-500">
+                                    {pin.description}
+                                  </div>
                                 )}
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Visits */}
                       {activity.visits.length > 0 && (
                         <div>
-                          <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs">
+                          <h4 className="flex items-center mb-2 text-sm font-semibold sm:text-base text-slate-900 gap-2">
+                            <span className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">
                               ↻{activity.visited}
                             </span>
                             Wizyty
                           </h4>
                           <div className="space-y-2">
                             {activity.visits.map(({ pin, visit }, idx) => (
-                              <div key={`${pin.id}-${visit.id}-${idx}`} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                <div className="font-medium text-slate-900 text-sm sm:text-base">{pin.title}</div>
-                                <div className="text-xs text-slate-600 mt-1">
-                                  Odwiedził: {visit.name} • {new Date(visit.visitedAt).toLocaleTimeString('pl-PL')}
+                              <div
+                                key={`${pin.id}-${visit.id}-${idx}`}
+                                className="p-3 border rounded-lg bg-amber-50 border-amber-200"
+                              >
+                                <div className="text-sm font-medium text-slate-900 sm:text-base">
+                                  {pin.title}
+                                </div>
+                                <div className="mt-1 text-xs text-slate-600">
+                                  Odwiedził: {visit.name} •{' '}
+                                  {new Date(visit.visitedAt).toLocaleTimeString('pl-PL')}
                                 </div>
                                 {visit.note && (
-                                  <div className="text-xs text-slate-500 mt-1 italic">"{visit.note}"</div>
+                                  <div className="mt-1 text-xs italic text-slate-500">
+                                    "{visit.note}"
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -970,7 +1278,7 @@ const visitParagraphs = pin.visits?.length
         ) : showPinsData ? (
           <div className="space-y-3 sm:space-y-4">
             {/* Search Bar with Autocomplete */}
-            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4">
+            <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4">
               <div className="relative">
                 <input
                   type="text"
@@ -981,10 +1289,10 @@ const visitParagraphs = pin.visits?.length
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-slate-900 text-sm sm:text-base"
                 />
-                
+
                 {/* Autocomplete Suggestions */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 overflow-y-auto bg-white border rounded-lg shadow-lg border-slate-300 max-h-60">
                     {suggestions.map((pin) => (
                       <div
                         key={pin.id}
@@ -993,9 +1301,11 @@ const visitParagraphs = pin.visits?.length
                           setShowSuggestions(false);
                           setSelectedPin(pin);
                         }}
-                        className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                        className="px-3 py-2 border-b cursor-pointer sm:px-4 sm:py-3 hover:bg-purple-50 border-slate-100 last:border-b-0"
                       >
-                        <div className="font-medium text-slate-900 text-sm sm:text-base">{pin.title}</div>
+                        <div className="text-sm font-medium text-slate-900 sm:text-base">
+                          {pin.title}
+                        </div>
                         <div className="text-xs text-slate-500">{pin.category}</div>
                       </div>
                     ))}
@@ -1007,11 +1317,13 @@ const visitParagraphs = pin.visits?.length
               {/* Category Filter Buttons */}
               <div className="mt-3 sm:mt-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs sm:text-sm font-semibold text-slate-900">Filtruj po kategorii:</h3>
+                  <h3 className="text-xs font-semibold sm:text-sm text-slate-900">
+                    Filtruj po kategorii:
+                  </h3>
                   {selectedCategories.length > 0 && (
                     <button
                       onClick={() => setSelectedCategories([])}
-                      className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                      className="text-xs font-medium text-purple-600 hover:text-purple-700"
                     >
                       Wyczyść
                     </button>
@@ -1029,76 +1341,76 @@ const visitParagraphs = pin.visits?.length
                       }`}
                     >
                       {category}
-                      {selectedCategories.includes(category) && (
-                        <span className="ml-1">✓</span>
-                      )}
+                      {selectedCategories.includes(category) && <span className="ml-1">✓</span>}
                     </button>
                   ))}
                 </div>
-<div className="mt-4 pt-4 border-t border-slate-200">
-  <div className="flex items-center justify-between mb-2">
-    <h3 className="text-xs sm:text-sm font-semibold text-slate-900">Filtruj po osobie:</h3>
-    {selectedNames.length > 0 && (
-      <button
-        onClick={() => setSelectedNames([])}
-        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
-      >
-        Wyczyść
-      </button>
-    )}
-  </div>
-  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-    {availableNames.map((name) => (
-      <button
-        key={name}
-        onClick={() => toggleName(name)}
-        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
-          selectedNames.includes(name)
-            ? 'bg-indigo-600 text-white'
-            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-        }`}
-      >
-        {name}
-        {selectedNames.includes(name) && (
-          <span className="ml-1">✓</span>
-        )}
-      </button>
-    ))}
-  </div>
-  {selectedNames.length > 0 && (
-    <p className="text-xs text-slate-500 mt-2">
-      Filtrowanie po: {selectedNames.join(', ')}
-    </p>
-  )}
-</div>
+                <div className="pt-4 mt-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold sm:text-sm text-slate-900">
+                      Filtruj po osobie:
+                    </h3>
+                    {selectedNames.length > 0 && (
+                      <button
+                        onClick={() => setSelectedNames([])}
+                        className="text-xs font-medium text-purple-600 hover:text-purple-700"
+                      >
+                        Wyczyść
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    {availableNames.map((name) => (
+                      <button
+                        key={name}
+                        onClick={() => toggleName(name)}
+                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+                          selectedNames.includes(name)
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {name}
+                        {selectedNames.includes(name) && <span className="ml-1">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedNames.length > 0 && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Filtrowanie po: {selectedNames.join(', ')}
+                    </p>
+                  )}
+                </div>
                 {(selectedCategories.length > 0 || selectedNames.length > 0) && (
-                  <p className="text-xs text-slate-500 mt-2">
-                    Pokazuję {filteredPins.length} {filteredPins.length === 1 ? 'pinezkę' : 'pinezek'}
-                    {selectedCategories.length > 0 && ` (kategorie: ${selectedCategories.join(', ')})`}
+                  <p className="mt-2 text-xs text-slate-500">
+                    Pokazuję {filteredPins.length}{' '}
+                    {filteredPins.length === 1 ? 'pinezkę' : 'pinezek'}
+                    {selectedCategories.length > 0 &&
+                      ` (kategorie: ${selectedCategories.join(', ')})`}
                     {selectedNames.length > 0 && ` (osoby: ${selectedNames.join(', ')})`}
                   </p>
                 )}
               </div>
             </div>
 
-{(selectedCategories.length > 0 || selectedNames.length > 0) && (
-  <div className="mt-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
-    <button
-      onClick={() => {
-        setSelectedCategories([]);
-        setSelectedNames([]);
-      }}
-      className="w-full px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium"
-    >
-      Wyczyść wszystkie filtry ({selectedCategories.length + selectedNames.length})
-    </button>
-  </div>
-)}
+            {(selectedCategories.length > 0 || selectedNames.length > 0) && (
+              <div className="p-2 mt-3 border border-purple-200 rounded-lg bg-purple-50">
+                <button
+                  onClick={() => {
+                    setSelectedCategories([]);
+                    setSelectedNames([]);
+                  }}
+                  className="w-full px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium"
+                >
+                  Wyczyść wszystkie filtry ({selectedCategories.length + selectedNames.length})
+                </button>
+              </div>
+            )}
             {/* Pins List - Mobile optimized */}
             <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-4">
               {/* Pins Column */}
               <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 max-h-[500px] sm:max-h-[700px] overflow-y-auto">
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 mb-3 sm:mb-4 sticky top-0 bg-white pb-2">
+                <h2 className="sticky top-0 pb-2 mb-3 text-base font-bold bg-white sm:text-lg md:text-xl text-slate-900 sm:mb-4">
                   Pinezki ({filteredPins.length})
                 </h2>
                 <div className="space-y-2">
@@ -1112,19 +1424,26 @@ const visitParagraphs = pin.visits?.length
                           : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
                       }`}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-slate-900 text-sm sm:text-base flex-1 pr-2">{pin.title}</h3>
-                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded whitespace-nowrap">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="flex-1 pr-2 text-sm font-semibold text-slate-900 sm:text-base">
+                          {pin.title}
+                        </h3>
+                        <span className="px-2 py-1 text-xs text-purple-800 bg-purple-100 rounded whitespace-nowrap">
                           {pin.visitsCount} wizyt
                         </span>
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-600 mb-2 line-clamp-2">{pin.description || 'Brak opisu'}</p>
-                      <div className="flex justify-between items-center text-xs text-slate-500">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded truncate max-w-[60%]">{pin.category}</span>
-                        <span className="whitespace-nowrap">{new Date(pin.createdAt).toLocaleDateString('pl-PL')}</span>
+                      <p className="mb-2 text-xs sm:text-sm text-slate-600 line-clamp-2">
+                        {pin.description || 'Brak opisu'}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded truncate max-w-[60%]">
+                          {pin.category}
+                        </span>
+                        <span className="whitespace-nowrap">
+                          {new Date(pin.createdAt).toLocaleDateString('pl-PL')}
+                        </span>
                       </div>
                     </div>
-
                   ))}
                 </div>
               </div>
@@ -1133,63 +1452,98 @@ const visitParagraphs = pin.visits?.length
               <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 max-h-[500px] sm:max-h-[700px] overflow-y-auto">
                 {selectedPin ? (
                   <div>
-                    <div className="sticky top-0 bg-white pb-3 sm:pb-4 mb-3 sm:mb-4 border-b-2 border-slate-200">
-                      <h2 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 mb-2">{selectedPin.title}</h2>
-                      <p className="text-xs sm:text-sm text-slate-600 mb-3">{selectedPin.description || 'Brak opisu'}</p>
+                    <div className="sticky top-0 pb-3 mb-3 bg-white border-b-2 sm:pb-4 sm:mb-4 border-slate-200">
+                      <h2 className="mb-2 text-base font-bold sm:text-lg md:text-xl text-slate-900">
+                        {selectedPin.title}
+                      </h2>
+                      <p className="mb-3 text-xs sm:text-sm text-slate-600">
+                        {selectedPin.description || 'Brak opisu'}
+                      </p>
                       <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 sm:px-3 py-1 rounded-full">
+                        <span className="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full sm:px-3">
                           {selectedPin.category}
                         </span>
-                        <span className="text-xs bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-full">
+                        <span className="px-2 py-1 text-xs text-green-800 bg-green-100 rounded-full sm:px-3">
                           {selectedPin.visitsCount} wizyt
                         </span>
-                        <span className="text-xs bg-slate-100 text-slate-800 px-2 sm:px-3 py-1 rounded-full">
+                        <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-800 sm:px-3">
                           {new Date(selectedPin.createdAt).toLocaleDateString('pl-PL')}
                         </span>
                       </div>
 
-                              <button
-          onClick={() => exportPinToDocx(selectedPin)}
-          className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center gap-2"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Eksportuj do Word
-        </button>
+                      <button
+                        onClick={() => exportPinToDocx(selectedPin)}
+                        className="flex items-center justify-center w-full px-4 py-2 mt-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Eksportuj do Word
+                      </button>
                     </div>
 
-                    <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 mb-3">
+                    <h3 className="mb-3 text-sm font-semibold sm:text-base md:text-lg text-slate-900">
                       Wizyty ({selectedPin.visits?.length || 0})
                     </h3>
-                    
+
                     {selectedPin.visits && selectedPin.visits.length > 0 ? (
                       <div className="space-y-2 sm:space-y-3">
                         {selectedPin.visits.map((visit) => (
-                          <div key={visit.id} className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
-                            <div className="flex justify-between items-start mb-2 gap-2">
-                              <span className="font-medium text-slate-900 text-sm sm:text-base">{visit.name}</span>
+                          <div
+                            key={visit.id}
+                            className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"
+                          >
+                            <div className="flex items-start justify-between mb-2 gap-2">
+                              <span className="text-sm font-medium text-slate-900 sm:text-base">
+                                {visit.name}
+                              </span>
                               <span className="text-xs text-slate-500 whitespace-nowrap">
                                 {new Date(visit.visitedAt).toLocaleDateString('pl-PL')}
                               </span>
                             </div>
                             {visit.note && (
-                              <p className="text-xs sm:text-sm text-slate-600 mt-2 italic">"{visit.note}"</p>
+                              <p className="mt-2 text-xs italic sm:text-sm text-slate-600">
+                                "{visit.note}"
+                              </p>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-slate-500 text-center py-8 text-sm">Brak wizyt dla tej pinezki</p>
+                      <p className="py-8 text-sm text-center text-slate-500">
+                        Brak wizyt dla tej pinezki
+                      </p>
                     )}
                   </div>
                 ) : (
                   <div className="h-full min-h-[300px] flex items-center justify-center text-slate-400">
-                    <div className="text-center px-4">
-                      <svg className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                    <div className="px-4 text-center">
+                      <svg
+                        className="w-12 h-12 mx-auto mb-3 sm:h-16 sm:w-16 sm:mb-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                        />
                       </svg>
-                      <p className="text-sm sm:text-base md:text-lg">Wybierz pinezkę aby zobaczyć szczegóły</p>
+                      <p className="text-sm sm:text-base md:text-lg">
+                        Wybierz pinezkę aby zobaczyć szczegóły
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1199,31 +1553,33 @@ const visitParagraphs = pin.visits?.length
         ) : (
           <>
             {/* Date Range Filter */}
-            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6 mb-3 sm:mb-4 md:mb-8">
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">Zakres dat</h2>
+            <div className="p-3 mb-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6 sm:mb-4 md:mb-8">
+              <h2 className="mb-3 text-sm font-semibold sm:text-base md:text-lg text-slate-900 sm:mb-4">
+                Zakres dat
+              </h2>
               <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-2">
+                    <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-900">
                       Data początkowa
                     </label>
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-2 sm:px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 text-xs sm:text-sm"
+                      className="w-full px-2 py-2 text-xs border rounded-lg sm:px-3 border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 sm:text-sm"
                       style={{ colorScheme: 'light' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-2">
+                    <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-900">
                       Data końcowa
                     </label>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-2 sm:px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 text-xs sm:text-sm"
+                      className="w-full px-2 py-2 text-xs border rounded-lg sm:px-3 border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 sm:text-sm"
                       style={{ colorScheme: 'light' }}
                     />
                   </div>
@@ -1233,7 +1589,7 @@ const visitParagraphs = pin.visits?.length
                     setStartDate('');
                     setEndDate('');
                   }}
-                  className="w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium text-xs sm:text-sm"
+                  className="w-full px-4 py-2 text-xs font-medium text-white rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors sm:text-sm"
                 >
                   Resetuj filtry
                 </button>
@@ -1241,66 +1597,84 @@ const visitParagraphs = pin.visits?.length
             </div>
 
             {/* Primary KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-8">
+            <div className="mb-3 grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 sm:mb-4 md:mb-8">
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
-                <div className="text-xs font-medium text-slate-500 mb-1">TOTAL</div>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900">{filteredStats.total}</p>
+                <div className="mb-1 text-xs font-medium text-slate-500">TOTAL</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+                  {filteredStats.total}
+                </p>
                 <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Wszystkie piny</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-amber-500 hover:shadow-xl transition-shadow">
-                <div className="text-xs font-medium text-slate-500 mb-1">WIZYTY</div>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900">{filteredStats.totalUpdates || 0}</p>
+                <div className="mb-1 text-xs font-medium text-slate-500">WIZYTY</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+                  {filteredStats.totalUpdates || 0}
+                </p>
                 <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Aktualizacji</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
-                <div className="text-xs font-medium text-slate-500 mb-1">WZROST</div>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900">{growthRate}%</p>
+                <div className="mb-1 text-xs font-medium text-slate-500">WZROST</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+                  {growthRate}%
+                </p>
                 <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Od początku</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
-                <div className="text-xs font-medium text-slate-500 mb-1">ŚREDNIA</div>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900">{avgPerDay}</p>
+                <div className="mb-1 text-xs font-medium text-slate-500">ŚREDNIA</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+                  {avgPerDay}
+                </p>
                 <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Pinów/dzień</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
-                <div className="text-xs font-medium text-slate-500 mb-1">KATEGORIE</div>
-                <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900">{Object.keys(filteredStats.categories).length}</p>
+                <div className="mb-1 text-xs font-medium text-slate-500">KATEGORIE</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+                  {Object.keys(filteredStats.categories).length}
+                </p>
                 <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Typów</p>
               </div>
             </div>
 
             {/* Secondary KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-8">
+            <div className="mb-3 grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 sm:mb-4 md:mb-8">
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="text-xs text-slate-500 mb-1">Aktywność totalna</div>
-                <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-900">{totalActivity}</p>
+                <div className="mb-1 text-xs text-slate-500">Aktywność totalna</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+                  {totalActivity}
+                </p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="text-xs text-slate-500 mb-1">Ratio wizyt/pin</div>
-                <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-900">{activityRatio}</p>
+                <div className="mb-1 text-xs text-slate-500">Ratio wizyt/pin</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+                  {activityRatio}
+                </p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="text-xs text-slate-500 mb-1">Max pinów/dzień</div>
-                <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-900">{maxDailyPins}</p>
+                <div className="mb-1 text-xs text-slate-500">Max pinów/dzień</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+                  {maxDailyPins}
+                </p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="text-xs text-slate-500 mb-1">Śr. wizyt/dzień</div>
-                <p className="text-base sm:text-xl md:text-2xl font-bold text-slate-900">{avgUpdatesPerDay}</p>
+                <div className="mb-1 text-xs text-slate-500">Śr. wizyt/dzień</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+                  {avgUpdatesPerDay}
+                </p>
               </div>
             </div>
 
             {/* Main Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
+            <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 sm:mb-4 md:mb-6">
               {/* Cumulative Growth */}
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-                <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4">
+              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
                   Wzrost kumulatywny
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1320,7 +1694,7 @@ const visitParagraphs = pin.visits?.length
                         backgroundColor: 'white',
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px',
-                        fontSize: '11px'
+                        fontSize: '11px',
                       }}
                     />
                     <Line
@@ -1337,8 +1711,8 @@ const visitParagraphs = pin.visits?.length
               </div>
 
               {/* Daily Additions */}
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-                <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4">
+              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
                   Nowe piny
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1358,24 +1732,19 @@ const visitParagraphs = pin.visits?.length
                         backgroundColor: 'white',
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px',
-                        fontSize: '11px'
+                        fontSize: '11px',
                       }}
                     />
-                    <Bar
-                      dataKey="count"
-                      fill="#10b981"
-                      radius={[6, 6, 0, 0]}
-                      name="Nowe piny"
-                    />
+                    <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} name="Nowe piny" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Category Distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-                <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4">
+            <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 sm:mb-4 md:mb-6">
+              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
                   Rozkład kategorii
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1394,60 +1763,75 @@ const visitParagraphs = pin.visits?.length
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                       3:00 PM
-</Pie> <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px' }} /> </PieChart> </ResponsiveContainer> </div>
+                    </Pie>{' '}
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                      }}
+                    />{' '}
+                  </PieChart>{' '}
+                </ResponsiveContainer>{' '}
+              </div>
 
-          {/* Category Bar Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-            <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4">
-              Ranking kategorii
-            </h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" tick={{ fill: '#1e293b', fontSize: 9 }} />
-                <YAxis dataKey="name" type="category" width={60} tick={{ fill: '#1e293b', fontSize: 9 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '11px'
-                  }}
-                />
-                <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} name="Liczba">
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </>
-    )}
-  </div>
-  <style jsx global>{`
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0);
-    }
-    input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-      color: #1e293b;
-    }
-    input[type="date"]::-webkit-datetime-edit-text {
-      color: #1e293b;
-      padding: 0 0.3em;
-    }
-    input[type="date"]::-webkit-datetime-edit-month-field {
-      color: #1e293b;
-    }
-    input[type="date"]::-webkit-datetime-edit-day-field {
-      color: #1e293b;
-    }
-    input[type="date"]::-webkit-datetime-edit-year-field {
-      color: #1e293b;
-    }
-  `}</style>
-</div>
-
-);
+              {/* Category Bar Chart */}
+              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
+                  Ranking kategorii
+                </h2>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={categoryData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis type="number" tick={{ fill: '#1e293b', fontSize: 9 }} />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={60}
+                      tick={{ fill: '#1e293b', fontSize: 9 }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                      }}
+                    />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} name="Liczba">
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      <style jsx global>{`
+        input[type='date']::-webkit-calendar-picker-indicator {
+          filter: invert(0);
+        }
+        input[type='date']::-webkit-datetime-edit-fields-wrapper {
+          color: #1e293b;
+        }
+        input[type='date']::-webkit-datetime-edit-text {
+          color: #1e293b;
+          padding: 0 0.3em;
+        }
+        input[type='date']::-webkit-datetime-edit-month-field {
+          color: #1e293b;
+        }
+        input[type='date']::-webkit-datetime-edit-day-field {
+          color: #1e293b;
+        }
+        input[type='date']::-webkit-datetime-edit-year-field {
+          color: #1e293b;
+        }
+      `}</style>
+    </div>
+  );
 }
