@@ -88,19 +88,19 @@ const BACKGROUNDS = [
 
 const CARD_BACKS = [
   {
-    name: 'Czerwony klasyczny',
+    name: 'Czerwony',
     style: 'repeating-linear-gradient(45deg, #dc2626, #dc2626 10px, #b91c1c 10px, #b91c1c 20px)',
   },
   {
-    name: 'Niebieski klasyczny',
+    name: 'Niebieski',
     style: 'repeating-linear-gradient(45deg, #3b82f6, #3b82f6 10px, #2563eb 10px, #2563eb 20px)',
   },
   {
-    name: 'Zielony klasyczny',
+    name: 'Zielony',
     style: 'repeating-linear-gradient(45deg, #22c55e, #22c55e 10px, #16a34a 10px, #16a34a 20px)',
   },
   {
-    name: 'Fioletowy klasyczny',
+    name: 'Fioletowy',
     style: 'repeating-linear-gradient(45deg, #a855f7, #a855f7 10px, #9333ea 10px, #9333ea 20px)',
   },
   {
@@ -112,40 +112,29 @@ const CARD_BACKS = [
     style: 'repeating-linear-gradient(45deg, #ec4899, #ec4899 10px, #db2777 10px, #db2777 20px)',
   },
   {
-    name: 'Geometryczny niebieski',
-    style:
-      'radial-gradient(circle at 25% 25%, #6366f1 0%, #6366f1 25%, #4f46e5 25%, #4f46e5 50%, #6366f1 50%, #6366f1 75%, #4f46e5 75%)',
+    name: 'Gradient ocean',
+    style: 'linear-gradient(135deg, #0077be, #00a8e8, #00d4ff)',
   },
   {
-    name: 'Geometryczny czerwony',
-    style:
-      'radial-gradient(circle at 25% 25%, #dc2626 0%, #dc2626 25%, #b91c1c 25%, #b91c1c 50%, #dc2626 50%, #dc2626 75%, #b91c1c 75%)',
+    name: 'Gradient zachód',
+    style: 'linear-gradient(135deg, #ff6b6b, #ee5a6f, #c44569, #f38181)',
   },
   {
-    name: 'Kratkowany czarny',
-    style: 'repeating-conic-gradient(#1f2937 0% 25%, #374151 0% 50%) 50% / 20px 20px',
+    name: 'Gradient las',
+    style: 'linear-gradient(135deg, #134e4a, #16a34a, #22c55e)',
   },
   {
-    name: 'Kratkowany biały',
-    style: 'repeating-conic-gradient(#f3f4f6 0% 25%, #e5e7eb 0% 50%) 50% / 20px 20px',
+    name: 'Czarny',
+    style: '#1f2937',
   },
   {
-    name: 'Diamentowy',
-    style:
-      'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px), linear-gradient(135deg, #6366f1, #8b5cf6)',
+    name: 'Biały',
+    style: '#f3f4f6',
   },
   {
-    name: 'Gradient tęczowy',
-    style: 'linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3)',
+    name: 'Złoty',
+    style: 'linear-gradient(135deg, #d4af37, #ffd700, #ffed4e)',
   },
-  { name: 'Gradient ocean', style: 'linear-gradient(135deg, #0077be, #00a8e8, #00d4ff)' },
-  { name: 'Gradient zachód', style: 'linear-gradient(135deg, #ff6b6b, #ee5a6f, #c44569, #f38181)' },
-  { name: 'Gradient las', style: 'linear-gradient(135deg, #134e4a, #16a34a, #22c55e)' },
-  { name: 'Czarny matowy', style: '#1f2937' },
-  { name: 'Biały matowy', style: '#f3f4f6' },
-  { name: 'Złoty', style: 'linear-gradient(135deg, #d4af37, #ffd700, #ffed4e)' },
-  { name: 'Srebrny', style: 'linear-gradient(135deg, #94a3b8, #cbd5e1, #e2e8f0)' },
-  { name: 'Miedziany', style: 'linear-gradient(135deg, #b87333, #cd7f32, #d4af37)' },
 ];
 
 const CARD_STYLES = [
@@ -159,21 +148,12 @@ const CARD_STYLES = [
     borderColor: '#e5e7eb',
   },
   {
-    name: 'Neon jasny',
+    name: 'Neon',
     heartColor: '#ff006e',
     diamondColor: '#ff006e',
     clubColor: '#8338ec',
     spadeColor: '#3a86ff',
     bgColor: '#ffffff',
-    borderColor: '#00f5ff',
-  },
-  {
-    name: 'Neon ciemny',
-    heartColor: '#ff006e',
-    diamondColor: '#ff006e',
-    clubColor: '#8338ec',
-    spadeColor: '#3a86ff',
-    bgColor: '#000000',
     borderColor: '#00f5ff',
   },
   {
@@ -204,15 +184,6 @@ const CARD_STYLES = [
     borderColor: '#d4af37',
   },
   {
-    name: 'Srebrny',
-    heartColor: '#94a3b8',
-    diamondColor: '#cbd5e1',
-    clubColor: '#475569',
-    spadeColor: '#334155',
-    bgColor: '#f8fafc',
-    borderColor: '#94a3b8',
-  },
-  {
     name: 'Retro',
     heartColor: '#c92a2a',
     diamondColor: '#c92a2a',
@@ -231,7 +202,7 @@ const CARD_STYLES = [
     borderColor: '#000000',
   },
   {
-    name: 'Odwrócony',
+    name: 'Ciemny',
     heartColor: '#ffffff',
     diamondColor: '#ffffff',
     clubColor: '#ffffff',
@@ -239,74 +210,12 @@ const CARD_STYLES = [
     bgColor: '#1f2937',
     borderColor: '#ffffff',
   },
-  {
-    name: 'Kolorowy',
-    heartColor: '#ef4444',
-    diamondColor: '#f59e0b',
-    clubColor: '#10b981',
-    spadeColor: '#3b82f6',
-    bgColor: '#ffffff',
-    borderColor: '#6366f1',
-  },
-  {
-    name: 'Ciemny luksus',
-    heartColor: '#b91c1c',
-    diamondColor: '#b91c1c',
-    clubColor: '#d4af37',
-    spadeColor: '#d4af37',
-    bgColor: '#0f0f0f',
-    borderColor: '#d4af37',
-  },
-  {
-    name: 'Wiosenny',
-    heartColor: '#ff6b9d',
-    diamondColor: '#feca57',
-    clubColor: '#48dbfb',
-    spadeColor: '#1dd1a1',
-    bgColor: '#f8f9fa',
-    borderColor: '#ff6b9d',
-  },
-  {
-    name: 'Jesienny',
-    heartColor: '#e67e22',
-    diamondColor: '#f39c12',
-    clubColor: '#d35400',
-    spadeColor: '#8b4513',
-    bgColor: '#fef5e7',
-    borderColor: '#e67e22',
-  },
-  {
-    name: 'Zimowy',
-    heartColor: '#3498db',
-    diamondColor: '#5dade2',
-    clubColor: '#1f618d',
-    spadeColor: '#154360',
-    bgColor: '#ebf5fb',
-    borderColor: '#3498db',
-  },
-  {
-    name: 'Wysoki kontrast',
-    heartColor: '#ff0000',
-    diamondColor: '#ff0000',
-    clubColor: '#0000ff',
-    spadeColor: '#0000ff',
-    bgColor: '#ffffff',
-    borderColor: '#000000',
-  },
 ];
 
 const CARD_CORNERS = [
   { name: 'Ostre', radius: '4px' },
   { name: 'Zaokrąglone', radius: '8px' },
   { name: 'Bardzo zaokrąglone', radius: '16px' },
-  { name: 'Kapsułka', radius: '24px' },
-];
-
-const CARD_BORDERS = [
-  { name: 'Cienka', width: '1px' },
-  { name: 'Normalna', width: '2px' },
-  { name: 'Gruba', width: '3px' },
-  { name: 'Bardzo gruba', width: '4px' },
 ];
 
 const CARD_SHADOWS = [
@@ -314,7 +223,6 @@ const CARD_SHADOWS = [
   { name: 'Subtelny', shadow: '0 1px 3px rgba(0, 0, 0, 0.1)' },
   { name: 'Normalny', shadow: '0 2px 6px rgba(0, 0, 0, 0.15)' },
   { name: 'Mocny', shadow: '0 4px 12px rgba(0, 0, 0, 0.25)' },
-  { name: 'Neon', shadow: '0 0 20px currentColor' },
 ];
 
 // ============================================================================
@@ -341,10 +249,8 @@ export default function Pasjans() {
   const [cardBackIndex, setCardBackIndex] = useState(0);
   const [cardStyleIndex, setCardStyleIndex] = useState(0);
   const [cardCornerIndex, setCardCornerIndex] = useState(1);
-  const [cardBorderIndex, setCardBorderIndex] = useState(1);
   const [cardShadowIndex, setCardShadowIndex] = useState(2);
   const [animations, setAnimations] = useState(true);
-  const [cardSize, setCardSize] = useState(1); // 0.8, 1, 1.2
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -630,38 +536,44 @@ export default function Pasjans() {
     }
   };
 
-  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
-    if (!dragging) return;
+  const handleDragMove = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      if (!dragging) return;
 
-    e.preventDefault();
+      e.preventDefault();
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-    setDragOffset({ x: clientX, y: clientY });
-  }, [dragging]);
+      setDragOffset({ x: clientX, y: clientY });
+    },
+    [dragging]
+  );
 
-  const handleDragEnd = useCallback((e: MouseEvent | TouchEvent) => {
-    if (!dragging) return;
+  const handleDragEnd = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      if (!dragging) return;
 
-    e.preventDefault();
+      e.preventDefault();
 
-    const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : e.clientX;
-    const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
+      const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : e.clientX;
+      const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
 
-    const element = document.elementFromPoint(clientX, clientY);
-    const dropTarget = element?.closest('[data-pile]');
+      const element = document.elementFromPoint(clientX, clientY);
+      const dropTarget = element?.closest('[data-pile]');
 
-    if (dropTarget) {
-      const targetPile = dropTarget.getAttribute('data-pile');
-      if (targetPile) {
-        moveCards(dragging.pile, dragging.index, targetPile);
+      if (dropTarget) {
+        const targetPile = dropTarget.getAttribute('data-pile');
+        if (targetPile) {
+          moveCards(dragging.pile, dragging.index, targetPile);
+        }
       }
-    }
 
-    setDragging(null);
-    setSelectedCard(null);
-  }, [dragging, moveCards]);
+      setDragging(null);
+      setSelectedCard(null);
+    },
+    [dragging, moveCards]
+  );
 
   useEffect(() => {
     if (dragging) {
@@ -761,7 +673,6 @@ export default function Pasjans() {
   const getCardStyle = (suit: Suit) => {
     const style = CARD_STYLES[cardStyleIndex];
     const corner = CARD_CORNERS[cardCornerIndex];
-    const border = CARD_BORDERS[cardBorderIndex];
     const shadow = CARD_SHADOWS[cardShadowIndex];
 
     let color = style.heartColor;
@@ -774,7 +685,6 @@ export default function Pasjans() {
       bg: style.bgColor,
       border: style.borderColor,
       borderRadius: corner.radius,
-      borderWidth: border.width,
       boxShadow: shadow.shadow,
     };
   };
@@ -804,7 +714,7 @@ export default function Pasjans() {
         body {
           margin: 0;
           padding: 0;
-          overflow-x: hidden;
+          overflow: hidden;
           overscroll-behavior: none;
           position: fixed;
           width: 100%;
@@ -818,7 +728,7 @@ export default function Pasjans() {
           height: 100dvh;
           width: 100vw;
           max-width: 100vw;
-          padding: 8px;
+          padding: 6px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           position: relative;
           user-select: none;
@@ -833,13 +743,13 @@ export default function Pasjans() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 8px;
-          gap: 8px;
+          margin-bottom: 6px;
+          gap: 6px;
           flex-shrink: 0;
         }
 
         .title {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 700;
           margin: 0;
           letter-spacing: -0.5px;
@@ -847,14 +757,14 @@ export default function Pasjans() {
 
         .controls {
           display: flex;
-          gap: 6px;
+          gap: 4px;
         }
 
         .btn {
-          padding: 6px 12px;
+          padding: 5px 10px;
           border: none;
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           background: rgba(255, 255, 255, 0.95);
@@ -874,15 +784,15 @@ export default function Pasjans() {
         }
 
         .btn-icon {
-          padding: 6px 10px;
-          font-size: 16px;
+          padding: 5px 8px;
+          font-size: 14px;
         }
 
         .stats {
           display: flex;
-          gap: 6px;
-          margin-bottom: 8px;
-          font-size: 11px;
+          gap: 4px;
+          margin-bottom: 6px;
+          font-size: 10px;
           font-weight: 600;
           flex-shrink: 0;
           flex-wrap: wrap;
@@ -891,8 +801,8 @@ export default function Pasjans() {
         .stat {
           background: rgba(255, 255, 255, 0.15);
           backdrop-filter: blur(10px);
-          padding: 4px 8px;
-          border-radius: 10px;
+          padding: 3px 6px;
+          border-radius: 8px;
           white-space: nowrap;
         }
 
@@ -906,20 +816,20 @@ export default function Pasjans() {
 
         .top-row {
           display: flex;
-          gap: 4px;
-          margin-bottom: 8px;
+          gap: 3px;
+          margin-bottom: 6px;
           flex-shrink: 0;
         }
 
         .stock-waste {
           display: flex;
-          gap: 4px;
+          gap: 3px;
           flex: 1;
         }
 
         .foundation-piles {
           display: flex;
-          gap: 4px;
+          gap: 3px;
           flex: 1;
         }
 
@@ -927,8 +837,8 @@ export default function Pasjans() {
           flex: 1;
           aspect-ratio: 2.5/3.5;
           background: rgba(255, 255, 255, 0.1);
-          border: 2px dashed rgba(255, 255, 255, 0.3);
-          border-radius: 6px;
+          border: 1.5px dashed rgba(255, 255, 255, 0.3);
+          border-radius: 5px;
           position: relative;
           min-width: 0;
           cursor: pointer;
@@ -940,37 +850,23 @@ export default function Pasjans() {
           border-color: rgba(255, 255, 255, 0.5);
         }
 
-        .pile.drag-over {
-          background: rgba(255, 255, 255, 0.25);
-          border-color: rgba(255, 255, 255, 0.7);
-          transform: scale(1.02);
-        }
-
         .card {
           width: 100%;
           height: 100%;
           background: white;
-          border-radius: 6px;
-          border: 2px solid #e5e7eb;
+          border-radius: 5px;
+          border: 1.5px solid #e5e7eb;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          font-size: clamp(14px, 3.5vw, 20px);
+          font-size: clamp(11px, 3vw, 16px);
           font-weight: 700;
           cursor: grab;
           position: relative;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
           transition: all 0.15s;
           transform-origin: center;
-        }
-
-        .card.size-small {
-          transform: scale(0.85);
-        }
-
-        .card.size-large {
-          transform: scale(1.15);
         }
 
         .card:active {
@@ -979,17 +875,9 @@ export default function Pasjans() {
 
         .card.selected {
           border-color: #fbbf24;
-          box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.5);
+          box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.5);
           transform: translateY(-2px) scale(1.05);
           z-index: 100;
-        }
-
-        .card.selected.size-small {
-          transform: translateY(-2px) scale(0.9);
-        }
-
-        .card.selected.size-large {
-          transform: translateY(-2px) scale(1.2);
         }
 
         .card-back {
@@ -999,29 +887,35 @@ export default function Pasjans() {
         }
 
         .card-suit {
-          font-size: clamp(18px, 4.5vw, 28px);
+          font-size: clamp(14px, 4vw, 22px);
           line-height: 1;
         }
 
         .card-rank {
-          font-size: clamp(12px, 3vw, 18px);
+          font-size: clamp(10px, 2.5vw, 14px);
           line-height: 1;
         }
 
         .tableau {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
-          gap: 3px;
+          gap: 2px;
           flex: 1;
           overflow-y: auto;
           overflow-x: hidden;
           min-height: 0;
-          padding-bottom: 8px;
+          padding-bottom: 6px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+
+        .tableau::-webkit-scrollbar {
+          display: none;
         }
 
         .tableau-pile {
           position: relative;
-          min-height: 100px;
+          min-height: 80px;
         }
 
         .tableau-card {
@@ -1040,7 +934,7 @@ export default function Pasjans() {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          font-size: clamp(16px, 3.5vw, 24px);
+          font-size: clamp(12px, 3vw, 18px);
           opacity: 0.4;
           pointer-events: none;
         }
@@ -1056,13 +950,13 @@ export default function Pasjans() {
 
         .drag-preview-inner {
           position: relative;
-          width: 60px;
+          width: 50px;
           transform: translate(-50%, -50%);
         }
 
         .drag-preview .card {
-          margin-bottom: 15px;
-          width: 60px;
+          margin-bottom: 12px;
+          width: 50px;
           aspect-ratio: 2.5/3.5;
         }
 
@@ -1072,42 +966,65 @@ export default function Pasjans() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.7);
+          background: rgba(0, 0, 0, 0.75);
           display: flex;
           align-items: flex-end;
           justify-content: center;
           z-index: 10000;
           padding: 0;
-          touch-action: none;
         }
 
         .settings-content {
-          background: white;
+          background: linear-gradient(to bottom, #f9fafb 0%, #ffffff 100%);
           color: #1f2937;
-          padding: 20px;
-          border-radius: 20px 20px 0 0;
+          padding: 16px;
+          border-radius: 16px 16px 0 0;
           width: 100%;
-          max-width: 500px;
-          max-height: 85vh;
+          max-width: 100vw;
+          max-height: 80vh;
           overflow-y: auto;
+          overflow-x: hidden;
           -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .settings-content::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .settings-content::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .settings-content::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 3px;
+        }
+
+        .settings-handle {
+          width: 36px;
+          height: 4px;
+          background: #cbd5e1;
+          border-radius: 2px;
+          margin: 0 auto 12px;
         }
 
         .settings-title {
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 700;
-          margin: 0 0 16px 0;
+          margin: 0 0 14px 0;
           text-align: center;
         }
 
         .setting-group {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .setting-label {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           display: block;
           color: #374151;
         }
@@ -1115,23 +1032,25 @@ export default function Pasjans() {
         .toggle {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px;
-          background: #f3f4f6;
-          border-radius: 10px;
+          gap: 10px;
+          padding: 10px;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
 
         .toggle:active {
-          background: #e5e7eb;
+          background: #f3f4f6;
+          transform: scale(0.98);
         }
 
         .toggle-switch {
-          width: 48px;
-          height: 28px;
+          width: 44px;
+          height: 24px;
           background: #d1d5db;
-          border-radius: 14px;
+          border-radius: 12px;
           position: relative;
           transition: background 0.3s;
           flex-shrink: 0;
@@ -1142,25 +1061,30 @@ export default function Pasjans() {
         }
 
         .toggle-knob {
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
           background: white;
           border-radius: 50%;
           position: absolute;
           top: 2px;
           left: 2px;
           transition: transform 0.3s;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .toggle-switch.active .toggle-knob {
           transform: translateX(20px);
         }
 
+        .toggle-text {
+          font-size: 13px;
+          font-weight: 500;
+        }
+
         .option-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
+          gap: 6px;
         }
 
         .option-grid.three-cols {
@@ -1168,19 +1092,19 @@ export default function Pasjans() {
         }
 
         .option {
-          padding: 10px;
-          border-radius: 8px;
+          padding: 8px;
+          border-radius: 6px;
           cursor: pointer;
-          border: 2px solid #e5e7eb;
+          border: 1.5px solid #e5e7eb;
+          background: white;
           font-weight: 600;
           text-align: center;
           transition: all 0.2s;
-          font-size: 12px;
+          font-size: 11px;
         }
 
         .option:active {
-          border-color: #d1d5db;
-          transform: scale(0.98);
+          transform: scale(0.96);
         }
 
         .option.active {
@@ -1206,31 +1130,31 @@ export default function Pasjans() {
         .win-content {
           background: white;
           color: #1f2937;
-          padding: 32px 24px;
-          border-radius: 20px;
+          padding: 28px 20px;
+          border-radius: 16px;
           text-align: center;
           max-width: 90%;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
         .win-title {
-          font-size: 40px;
-          margin: 0 0 12px 0;
+          font-size: 36px;
+          margin: 0 0 10px 0;
         }
 
         .win-text {
-          font-size: 16px;
+          font-size: 15px;
           color: #6b7280;
-          margin: 0 0 20px 0;
+          margin: 0 0 16px 0;
           font-weight: 500;
         }
 
         .win-stats {
           display: flex;
           justify-content: center;
-          gap: 20px;
-          margin-bottom: 20px;
-          font-size: 13px;
+          gap: 16px;
+          margin-bottom: 16px;
+          font-size: 12px;
         }
 
         .win-stat {
@@ -1238,85 +1162,87 @@ export default function Pasjans() {
         }
 
         .win-stat-value {
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 700;
           color: #10b981;
         }
 
         .win-stat-label {
           color: #6b7280;
-          margin-top: 4px;
+          margin-top: 2px;
         }
 
         @media (min-width: 640px) {
           .game-container {
-            padding: 16px;
+            padding: 12px;
           }
 
           .header {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
           }
 
           .title {
-            font-size: 24px;
+            font-size: 22px;
           }
 
           .btn {
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 7px 14px;
+            font-size: 13px;
           }
 
           .stats {
-            font-size: 13px;
-            margin-bottom: 12px;
-            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            gap: 6px;
           }
 
           .stat {
-            padding: 5px 12px;
+            padding: 4px 10px;
           }
 
           .top-row {
-            gap: 6px;
-            margin-bottom: 12px;
+            gap: 5px;
+            margin-bottom: 10px;
           }
 
           .stock-waste {
-            gap: 6px;
-          }
-
-          .foundation-piles {
-            gap: 6px;
-          }
-
-          .tableau {
             gap: 5px;
           }
 
+          .foundation-piles {
+            gap: 5px;
+          }
+
+          .tableau {
+            gap: 4px;
+          }
+
           .pile {
-            border-radius: 8px;
+            border-radius: 7px;
+            border-width: 2px;
           }
 
           .card {
-            border-radius: 8px;
-            font-size: clamp(16px, 4vw, 20px);
+            border-radius: 7px;
+            font-size: clamp(14px, 3.5vw, 18px);
+            border-width: 2px;
           }
 
           .card-suit {
-            font-size: clamp(20px, 5vw, 28px);
+            font-size: clamp(18px, 4.5vw, 26px);
           }
 
           .card-rank {
-            font-size: clamp(14px, 3.5vw, 18px);
+            font-size: clamp(12px, 3vw, 16px);
           }
 
           .drag-preview-inner {
-            width: 80px;
+            width: 70px;
           }
 
           .drag-preview .card {
-            width: 80px;
-            margin-bottom: 20px;
+            width: 70px;
+            margin-bottom: 16px;
           }
 
           .settings-overlay {
@@ -1324,12 +1250,22 @@ export default function Pasjans() {
           }
 
           .settings-content {
-            border-radius: 20px;
-            padding: 24px;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 480px;
+          }
+
+          .settings-handle {
+            display: none;
           }
 
           .settings-title {
-            font-size: 24px;
+            font-size: 22px;
+          }
+
+          .option {
+            font-size: 12px;
+            padding: 10px;
           }
         }
       `}</style>
@@ -1350,7 +1286,7 @@ export default function Pasjans() {
             ⚙
           </button>
           <button className="btn" onClick={initializeGame}>
-            Nowa gra
+            Nowa
           </button>
         </div>
       </div>
@@ -1400,13 +1336,10 @@ export default function Pasjans() {
                   const cardStyle = getCardStyle(card.suit);
                   return (
                     <div
-                      className={`card ${isCardSelected('waste', game.waste.length - 1) ? 'selected' : ''} ${
-                        cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''
-                      }`}
+                      className={`card ${isCardSelected('waste', game.waste.length - 1) ? 'selected' : ''}`}
                       style={{
                         background: cardStyle.bg,
                         borderColor: cardStyle.border,
-                        borderWidth: cardStyle.borderWidth,
                         borderRadius: cardStyle.borderRadius,
                         boxShadow: cardStyle.boxShadow,
                         color: cardStyle.color,
@@ -1439,11 +1372,10 @@ export default function Pasjans() {
                       const cardStyle = getCardStyle(card.suit);
                       return (
                         <div
-                          className={`card ${cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''}`}
+                          className="card"
                           style={{
                             background: cardStyle.bg,
                             borderColor: cardStyle.border,
-                            borderWidth: cardStyle.borderWidth,
                             borderRadius: cardStyle.borderRadius,
                             boxShadow: cardStyle.boxShadow,
                             color: cardStyle.color,
@@ -1471,22 +1403,19 @@ export default function Pasjans() {
               {pile.map((card, cardIndex) => {
                 const cardStyle = card.faceUp ? getCardStyle(card.suit) : null;
                 const isMobile = window.innerWidth < 640;
-                const cardOffset = isMobile ? 15 : 20;
-                
+                const cardOffset = isMobile ? 12 : 18;
+
                 return (
                   <div
                     key={card.id}
                     className={`tableau-card ${
                       card.faceUp ? `card` : 'card card-back'
-                    } ${isCardSelected(`tableau-${pileIndex}`, cardIndex) ? 'selected' : ''} ${
-                      cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''
-                    }`}
+                    } ${isCardSelected(`tableau-${pileIndex}`, cardIndex) ? 'selected' : ''}`}
                     style={{
                       top: `${cardIndex * cardOffset}px`,
                       zIndex: cardIndex,
                       background: !card.faceUp ? CARD_BACKS[cardBackIndex].style : cardStyle?.bg,
                       borderColor: card.faceUp ? cardStyle?.border : undefined,
-                      borderWidth: card.faceUp ? cardStyle?.borderWidth : undefined,
                       borderRadius: card.faceUp
                         ? cardStyle?.borderRadius
                         : CARD_CORNERS[cardCornerIndex].radius,
@@ -1535,16 +1464,15 @@ export default function Pasjans() {
           }}
         >
           <div className="drag-preview-inner">
-            {dragging.cards.map((card, i) => {
+            {dragging.cards.map((card) => {
               const cardStyle = getCardStyle(card.suit);
               return (
                 <div
                   key={card.id}
-                  className={`card ${cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''}`}
+                  className="card"
                   style={{
                     background: cardStyle.bg,
                     borderColor: cardStyle.border,
-                    borderWidth: cardStyle.borderWidth,
                     borderRadius: cardStyle.borderRadius,
                     boxShadow: cardStyle.boxShadow,
                     color: cardStyle.color,
@@ -1574,9 +1502,10 @@ export default function Pasjans() {
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="settings-handle" />
               <h2 className="settings-title">⚙️ Ustawienia</h2>
 
               {/* Draw Mode */}
@@ -1586,7 +1515,7 @@ export default function Pasjans() {
                   <div className={`toggle-switch ${drawThree ? 'active' : ''}`}>
                     <div className="toggle-knob" />
                   </div>
-                  <span>Dobieraj po 3 karty</span>
+                  <span className="toggle-text">Dobieraj po 3 karty</span>
                 </div>
               </div>
 
@@ -1597,32 +1526,7 @@ export default function Pasjans() {
                   <div className={`toggle-switch ${animations ? 'active' : ''}`}>
                     <div className="toggle-knob" />
                   </div>
-                  <span>Włącz animacje</span>
-                </div>
-              </div>
-
-              {/* Card Size */}
-              <div className="setting-group">
-                <label className="setting-label">Rozmiar kart</label>
-                <div className="option-grid three-cols">
-                  <div
-                    className={`option ${cardSize === 0.8 ? 'active' : ''}`}
-                    onClick={() => setCardSize(0.8)}
-                  >
-                    Małe
-                  </div>
-                  <div
-                    className={`option ${cardSize === 1 ? 'active' : ''}`}
-                    onClick={() => setCardSize(1)}
-                  >
-                    Normalne
-                  </div>
-                  <div
-                    className={`option ${cardSize === 1.2 ? 'active' : ''}`}
-                    onClick={() => setCardSize(1.2)}
-                  >
-                    Duże
-                  </div>
+                  <span className="toggle-text">Włącz animacje</span>
                 </div>
               </div>
 
@@ -1677,7 +1581,7 @@ export default function Pasjans() {
               {/* Card Corners */}
               <div className="setting-group">
                 <label className="setting-label">Zaokrąglenie rogów</label>
-                <div className="option-grid">
+                <div className="option-grid three-cols">
                   {CARD_CORNERS.map((corner, i) => (
                     <div
                       key={i}
@@ -1685,22 +1589,6 @@ export default function Pasjans() {
                       onClick={() => setCardCornerIndex(i)}
                     >
                       {corner.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Card Borders */}
-              <div className="setting-group">
-                <label className="setting-label">Grubość obramowania</label>
-                <div className="option-grid">
-                  {CARD_BORDERS.map((border, i) => (
-                    <div
-                      key={i}
-                      className={`option ${cardBorderIndex === i ? 'active' : ''}`}
-                      onClick={() => setCardBorderIndex(i)}
-                    >
-                      {border.name}
                     </div>
                   ))}
                 </div>
@@ -1724,7 +1612,7 @@ export default function Pasjans() {
 
               <button
                 className="btn"
-                style={{ width: '100%', marginTop: '12px' }}
+                style={{ width: '100%', marginTop: '10px', padding: '10px' }}
                 onClick={() => setShowSettings(false)}
               >
                 Zamknij
@@ -1761,7 +1649,11 @@ export default function Pasjans() {
                   <div className="win-stat-label">Czas</div>
                 </div>
               </div>
-              <button className="btn" onClick={initializeGame} style={{ width: '100%' }}>
+              <button
+                className="btn"
+                onClick={initializeGame}
+                style={{ width: '100%', padding: '10px' }}
+              >
                 Zagraj ponownie
               </button>
             </motion.div>
