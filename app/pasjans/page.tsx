@@ -347,6 +347,7 @@ export default function Pasjans() {
   const [cardSize, setCardSize] = useState(1); // 0.8, 1, 1.2
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // ============================================================================
   // GAME LOGIC
@@ -607,6 +608,7 @@ export default function Pasjans() {
     if (!game) return;
 
     e.preventDefault();
+    e.stopPropagation();
 
     let cards: Card[] = [];
     if (pile === 'waste' && game.waste.length > 0) {
@@ -628,17 +630,21 @@ export default function Pasjans() {
     }
   };
 
-  const handleDragMove = (e: MouseEvent | TouchEvent) => {
+  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!dragging) return;
+
+    e.preventDefault();
 
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
     setDragOffset({ x: clientX, y: clientY });
-  };
+  }, [dragging]);
 
-  const handleDragEnd = (e: MouseEvent | TouchEvent) => {
+  const handleDragEnd = useCallback((e: MouseEvent | TouchEvent) => {
     if (!dragging) return;
+
+    e.preventDefault();
 
     const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : e.clientX;
     const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
@@ -655,23 +661,26 @@ export default function Pasjans() {
 
     setDragging(null);
     setSelectedCard(null);
-  };
+  }, [dragging, moveCards]);
 
   useEffect(() => {
     if (dragging) {
-      window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleDragMove);
-      window.addEventListener('touchend', handleDragEnd);
+      const handleMove = (e: MouseEvent | TouchEvent) => handleDragMove(e);
+      const handleEnd = (e: MouseEvent | TouchEvent) => handleDragEnd(e);
+
+      window.addEventListener('mousemove', handleMove, { passive: false });
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
 
       return () => {
-        window.removeEventListener('mousemove', handleDragMove);
-        window.removeEventListener('mouseup', handleDragEnd);
-        window.removeEventListener('touchmove', handleDragMove);
-        window.removeEventListener('touchend', handleDragEnd);
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('mouseup', handleEnd);
+        window.removeEventListener('touchmove', handleMove);
+        window.removeEventListener('touchend', handleEnd);
       };
     }
-  }, [dragging]);
+  }, [dragging, handleDragMove, handleDragEnd]);
 
   // ============================================================================
   // CLICK HANDLERS
@@ -725,6 +734,20 @@ export default function Pasjans() {
     }
   }, [game]);
 
+  // Prevent scroll on touch devices when dragging
+  useEffect(() => {
+    const preventDefault = (e: TouchEvent) => {
+      if (dragging) {
+        e.preventDefault();
+      }
+    };
+
+    document.body.addEventListener('touchmove', preventDefault, { passive: false });
+    return () => {
+      document.body.removeEventListener('touchmove', preventDefault);
+    };
+  }, [dragging]);
+
   // ============================================================================
   // UTILITY FUNCTIONS
   // ============================================================================
@@ -764,6 +787,7 @@ export default function Pasjans() {
 
   return (
     <div
+      ref={containerRef}
       className="game-container"
       style={{
         background: BACKGROUNDS[bgIndex].bg,
@@ -776,23 +800,42 @@ export default function Pasjans() {
           box-sizing: border-box;
         }
 
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+          overflow-x: hidden;
+          overscroll-behavior: none;
+          position: fixed;
+          width: 100%;
+          height: 100%;
+        }
+
         .game-container {
           min-height: 100vh;
-          min-height: -webkit-fill-available;
+          min-height: 100dvh;
+          height: 100vh;
+          height: 100dvh;
+          width: 100vw;
+          max-width: 100vw;
           padding: 8px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           position: relative;
           user-select: none;
           -webkit-user-select: none;
-          touch-action: pan-y;
+          touch-action: none;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
         .header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           gap: 8px;
+          flex-shrink: 0;
         }
 
         .title {
@@ -837,40 +880,46 @@ export default function Pasjans() {
 
         .stats {
           display: flex;
-          gap: 8px;
-          margin-bottom: 10px;
-          font-size: 12px;
+          gap: 6px;
+          margin-bottom: 8px;
+          font-size: 11px;
           font-weight: 600;
+          flex-shrink: 0;
+          flex-wrap: wrap;
         }
 
         .stat {
           background: rgba(255, 255, 255, 0.15);
           backdrop-filter: blur(10px);
-          padding: 4px 10px;
-          border-radius: 12px;
+          padding: 4px 8px;
+          border-radius: 10px;
           white-space: nowrap;
         }
 
         .game-board {
-          max-width: 600px;
-          margin: 0 auto;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          min-height: 0;
         }
 
         .top-row {
           display: flex;
-          gap: 6px;
-          margin-bottom: 12px;
+          gap: 4px;
+          margin-bottom: 8px;
+          flex-shrink: 0;
         }
 
         .stock-waste {
           display: flex;
-          gap: 6px;
+          gap: 4px;
           flex: 1;
         }
 
         .foundation-piles {
           display: flex;
-          gap: 6px;
+          gap: 4px;
           flex: 1;
         }
 
@@ -879,14 +928,14 @@ export default function Pasjans() {
           aspect-ratio: 2.5/3.5;
           background: rgba(255, 255, 255, 0.1);
           border: 2px dashed rgba(255, 255, 255, 0.3);
-          border-radius: 8px;
+          border-radius: 6px;
           position: relative;
           min-width: 0;
           cursor: pointer;
           transition: all 0.2s;
         }
 
-        .pile:hover {
+        .pile:active {
           background: rgba(255, 255, 255, 0.15);
           border-color: rgba(255, 255, 255, 0.5);
         }
@@ -907,7 +956,7 @@ export default function Pasjans() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          font-size: clamp(16px, 4vw, 20px);
+          font-size: clamp(14px, 3.5vw, 20px);
           font-weight: 700;
           cursor: grab;
           position: relative;
@@ -943,45 +992,6 @@ export default function Pasjans() {
           transform: translateY(-2px) scale(1.2);
         }
 
-        .card.red {
-          color: #dc2626;
-        }
-
-        .card.black {
-          color: #1f2937;
-        }
-
-        .card.animate-bounce {
-          animation: cardBounce 0.5s ease;
-        }
-
-        @keyframes cardBounce {
-          0%,
-          100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.1);
-          }
-        }
-
-        .card.animate-shake {
-          animation: cardShake 0.5s ease;
-        }
-
-        @keyframes cardShake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
-          }
-        }
-
         .card-back {
           background: #dc2626;
           color: white;
@@ -989,24 +999,29 @@ export default function Pasjans() {
         }
 
         .card-suit {
-          font-size: clamp(20px, 5vw, 28px);
+          font-size: clamp(18px, 4.5vw, 28px);
           line-height: 1;
         }
 
         .card-rank {
-          font-size: clamp(14px, 3.5vw, 18px);
+          font-size: clamp(12px, 3vw, 18px);
           line-height: 1;
         }
 
         .tableau {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
-          gap: 4px;
+          gap: 3px;
+          flex: 1;
+          overflow-y: auto;
+          overflow-x: hidden;
+          min-height: 0;
+          padding-bottom: 8px;
         }
 
         .tableau-pile {
           position: relative;
-          min-height: 140px;
+          min-height: 100px;
         }
 
         .tableau-card {
@@ -1025,22 +1040,33 @@ export default function Pasjans() {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          font-size: clamp(18px, 4vw, 24px);
+          font-size: clamp(16px, 3.5vw, 24px);
           opacity: 0.4;
+          pointer-events: none;
         }
 
         .drag-preview {
           position: fixed;
           pointer-events: none;
-          z-index: 1000;
+          z-index: 9999;
+          left: 0;
+          top: 0;
+          will-change: transform;
+        }
+
+        .drag-preview-inner {
+          position: relative;
+          width: 60px;
           transform: translate(-50%, -50%);
         }
 
         .drag-preview .card {
-          margin-bottom: 20px;
+          margin-bottom: 15px;
+          width: 60px;
+          aspect-ratio: 2.5/3.5;
         }
 
-        .settings-modal {
+        .settings-overlay {
           position: fixed;
           top: 0;
           left: 0;
@@ -1048,37 +1074,40 @@ export default function Pasjans() {
           bottom: 0;
           background: rgba(0, 0, 0, 0.7);
           display: flex;
-          align-items: center;
+          align-items: flex-end;
           justify-content: center;
-          z-index: 1000;
-          padding: 20px;
+          z-index: 10000;
+          padding: 0;
+          touch-action: none;
         }
 
         .settings-content {
           background: white;
           color: #1f2937;
-          padding: 24px;
-          border-radius: 16px;
-          max-width: 400px;
+          padding: 20px;
+          border-radius: 20px 20px 0 0;
           width: 100%;
+          max-width: 500px;
           max-height: 85vh;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         .settings-title {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 700;
-          margin: 0 0 20px 0;
+          margin: 0 0 16px 0;
+          text-align: center;
         }
 
         .setting-group {
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         .setting-label {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
           display: block;
           color: #374151;
         }
@@ -1094,7 +1123,7 @@ export default function Pasjans() {
           transition: background 0.2s;
         }
 
-        .toggle:hover {
+        .toggle:active {
           background: #e5e7eb;
         }
 
@@ -1139,18 +1168,19 @@ export default function Pasjans() {
         }
 
         .option {
-          padding: 12px;
+          padding: 10px;
           border-radius: 8px;
           cursor: pointer;
           border: 2px solid #e5e7eb;
           font-weight: 600;
           text-align: center;
           transition: all 0.2s;
-          font-size: 13px;
+          font-size: 12px;
         }
 
-        .option:hover {
+        .option:active {
           border-color: #d1d5db;
+          transform: scale(0.98);
         }
 
         .option.active {
@@ -1159,7 +1189,7 @@ export default function Pasjans() {
           color: #065f46;
         }
 
-        .win-modal {
+        .win-overlay {
           position: fixed;
           top: 0;
           left: 0;
@@ -1169,14 +1199,14 @@ export default function Pasjans() {
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1001;
+          z-index: 10001;
           padding: 20px;
         }
 
         .win-content {
           background: white;
           color: #1f2937;
-          padding: 40px 32px;
+          padding: 32px 24px;
           border-radius: 20px;
           text-align: center;
           max-width: 90%;
@@ -1184,23 +1214,23 @@ export default function Pasjans() {
         }
 
         .win-title {
-          font-size: 48px;
-          margin: 0 0 16px 0;
+          font-size: 40px;
+          margin: 0 0 12px 0;
         }
 
         .win-text {
-          font-size: 18px;
+          font-size: 16px;
           color: #6b7280;
-          margin: 0 0 24px 0;
+          margin: 0 0 20px 0;
           font-weight: 500;
         }
 
         .win-stats {
           display: flex;
           justify-content: center;
-          gap: 24px;
-          margin-bottom: 24px;
-          font-size: 14px;
+          gap: 20px;
+          margin-bottom: 20px;
+          font-size: 13px;
         }
 
         .win-stat {
@@ -1208,7 +1238,7 @@ export default function Pasjans() {
         }
 
         .win-stat-value {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 700;
           color: #10b981;
         }
@@ -1218,29 +1248,13 @@ export default function Pasjans() {
           margin-top: 4px;
         }
 
-        .confetti {
-          position: fixed;
-          width: 10px;
-          height: 10px;
-          background: #f00;
-          position: absolute;
-          animation: confetti-fall 3s linear forwards;
-        }
-
-        @keyframes confetti-fall {
-          to {
-            transform: translateY(100vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
         @media (min-width: 640px) {
           .game-container {
             padding: 16px;
           }
 
           .header {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
 
           .title {
@@ -1253,44 +1267,76 @@ export default function Pasjans() {
           }
 
           .stats {
-            font-size: 14px;
-            margin-bottom: 14px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            gap: 8px;
+          }
+
+          .stat {
+            padding: 5px 12px;
           }
 
           .top-row {
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 6px;
+            margin-bottom: 12px;
           }
 
           .stock-waste {
-            gap: 8px;
-          }
-
-          .foundation-piles {
-            gap: 8px;
-          }
-
-          .tableau {
             gap: 6px;
           }
 
-          .tableau-pile {
-            min-height: 180px;
+          .foundation-piles {
+            gap: 6px;
+          }
+
+          .tableau {
+            gap: 5px;
           }
 
           .pile {
-            border-radius: 10px;
+            border-radius: 8px;
           }
 
           .card {
             border-radius: 8px;
+            font-size: clamp(16px, 4vw, 20px);
+          }
+
+          .card-suit {
+            font-size: clamp(20px, 5vw, 28px);
+          }
+
+          .card-rank {
+            font-size: clamp(14px, 3.5vw, 18px);
+          }
+
+          .drag-preview-inner {
+            width: 80px;
+          }
+
+          .drag-preview .card {
+            width: 80px;
+            margin-bottom: 20px;
+          }
+
+          .settings-overlay {
+            align-items: center;
+          }
+
+          .settings-content {
+            border-radius: 20px;
+            padding: 24px;
+          }
+
+          .settings-title {
+            font-size: 24px;
           }
         }
       `}</style>
 
       {/* Header */}
       <div className="header">
-        <h1 className="title">Pasjans</h1>
+        <h1 className="title">🎴 Pasjans</h1>
         <div className="controls">
           <button
             className="btn btn-icon"
@@ -1312,7 +1358,7 @@ export default function Pasjans() {
       {/* Stats */}
       <div className="stats">
         <div className="stat">⏱ {formatTime(time)}</div>
-        <div className="stat">🎯 Ruchy: {moves}</div>
+        <div className="stat">🎯 {moves}</div>
         <div className="stat">
           🏆 {game.foundation.reduce((sum, pile) => sum + pile.length, 0)}/52
         </div>
@@ -1424,6 +1470,9 @@ export default function Pasjans() {
               {pile.length === 0 && <div className="empty-icon">K</div>}
               {pile.map((card, cardIndex) => {
                 const cardStyle = card.faceUp ? getCardStyle(card.suit) : null;
+                const isMobile = window.innerWidth < 640;
+                const cardOffset = isMobile ? 15 : 20;
+                
                 return (
                   <div
                     key={card.id}
@@ -1433,7 +1482,7 @@ export default function Pasjans() {
                       cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''
                     }`}
                     style={{
-                      top: `${cardIndex * (window.innerWidth < 640 ? 18 : 24)}px`,
+                      top: `${cardIndex * cardOffset}px`,
                       zIndex: cardIndex,
                       background: !card.faceUp ? CARD_BACKS[cardBackIndex].style : cardStyle?.bg,
                       borderColor: card.faceUp ? cardStyle?.border : undefined,
@@ -1482,31 +1531,31 @@ export default function Pasjans() {
         <div
           className="drag-preview"
           style={{
-            left: dragOffset.x,
-            top: dragOffset.y,
+            transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
           }}
         >
-          {dragging.cards.map((card, i) => {
-            const cardStyle = getCardStyle(card.suit);
-            return (
-              <div
-                key={card.id}
-                className={`card ${cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''}`}
-                style={{
-                  marginTop: i > 0 ? '-60%' : 0,
-                  background: cardStyle.bg,
-                  borderColor: cardStyle.border,
-                  borderWidth: cardStyle.borderWidth,
-                  borderRadius: cardStyle.borderRadius,
-                  boxShadow: cardStyle.boxShadow,
-                  color: cardStyle.color,
-                }}
-              >
-                <div className="card-rank">{card.rank}</div>
-                <div className="card-suit">{card.suit}</div>
-              </div>
-            );
-          })}
+          <div className="drag-preview-inner">
+            {dragging.cards.map((card, i) => {
+              const cardStyle = getCardStyle(card.suit);
+              return (
+                <div
+                  key={card.id}
+                  className={`card ${cardSize === 0.8 ? 'size-small' : cardSize === 1.2 ? 'size-large' : ''}`}
+                  style={{
+                    background: cardStyle.bg,
+                    borderColor: cardStyle.border,
+                    borderWidth: cardStyle.borderWidth,
+                    borderRadius: cardStyle.borderRadius,
+                    boxShadow: cardStyle.boxShadow,
+                    color: cardStyle.color,
+                  }}
+                >
+                  <div className="card-rank">{card.rank}</div>
+                  <div className="card-suit">{card.suit}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -1514,7 +1563,7 @@ export default function Pasjans() {
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            className="settings-modal"
+            className="settings-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1522,12 +1571,13 @@ export default function Pasjans() {
           >
             <motion.div
               className="settings-content"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="settings-title">Ustawienia</h2>
+              <h2 className="settings-title">⚙️ Ustawienia</h2>
 
               {/* Draw Mode */}
               <div className="setting-group">
@@ -1536,7 +1586,7 @@ export default function Pasjans() {
                   <div className={`toggle-switch ${drawThree ? 'active' : ''}`}>
                     <div className="toggle-knob" />
                   </div>
-                  <span>Dobieraj po 3 karty (trudniejsze)</span>
+                  <span>Dobieraj po 3 karty</span>
                 </div>
               </div>
 
@@ -1547,7 +1597,7 @@ export default function Pasjans() {
                   <div className={`toggle-switch ${animations ? 'active' : ''}`}>
                     <div className="toggle-knob" />
                   </div>
-                  <span>Włącz animacje kart</span>
+                  <span>Włącz animacje</span>
                 </div>
               </div>
 
@@ -1578,14 +1628,13 @@ export default function Pasjans() {
 
               {/* Background */}
               <div className="setting-group">
-                <label className="setting-label">Tło stołu ({BACKGROUNDS.length} opcji)</label>
+                <label className="setting-label">Tło stołu</label>
                 <div className="option-grid">
                   {BACKGROUNDS.map((bg, i) => (
                     <div
                       key={i}
                       className={`option ${bgIndex === i ? 'active' : ''}`}
                       onClick={() => setBgIndex(i)}
-                      style={{ fontSize: '11px' }}
                     >
                       {bg.name}
                     </div>
@@ -1595,14 +1644,13 @@ export default function Pasjans() {
 
               {/* Card Style */}
               <div className="setting-group">
-                <label className="setting-label">Styl kart ({CARD_STYLES.length} opcji)</label>
+                <label className="setting-label">Styl kart</label>
                 <div className="option-grid">
                   {CARD_STYLES.map((style, i) => (
                     <div
                       key={i}
                       className={`option ${cardStyleIndex === i ? 'active' : ''}`}
                       onClick={() => setCardStyleIndex(i)}
-                      style={{ fontSize: '11px' }}
                     >
                       {style.name}
                     </div>
@@ -1612,14 +1660,13 @@ export default function Pasjans() {
 
               {/* Card Back */}
               <div className="setting-group">
-                <label className="setting-label">Rewers kart ({CARD_BACKS.length} opcji)</label>
+                <label className="setting-label">Rewers kart</label>
                 <div className="option-grid">
                   {CARD_BACKS.map((back, i) => (
                     <div
                       key={i}
                       className={`option ${cardBackIndex === i ? 'active' : ''}`}
                       onClick={() => setCardBackIndex(i)}
-                      style={{ fontSize: '11px' }}
                     >
                       {back.name}
                     </div>
@@ -1677,7 +1724,7 @@ export default function Pasjans() {
 
               <button
                 className="btn"
-                style={{ width: '100%', marginTop: '20px' }}
+                style={{ width: '100%', marginTop: '12px' }}
                 onClick={() => setShowSettings(false)}
               >
                 Zamknij
@@ -1691,7 +1738,7 @@ export default function Pasjans() {
       <AnimatePresence>
         {won && (
           <motion.div
-            className="win-modal"
+            className="win-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1715,7 +1762,7 @@ export default function Pasjans() {
                 </div>
               </div>
               <button className="btn" onClick={initializeGame} style={{ width: '100%' }}>
-                Nowa gra
+                Zagraj ponownie
               </button>
             </motion.div>
           </motion.div>
