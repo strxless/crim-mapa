@@ -596,6 +596,8 @@ export type StreetworkStat = {
   interactions: number;
   newContacts: number;
   interventions: number;
+  avatar?: string | null;
+  bgColor?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -609,11 +611,16 @@ async function ensureStreetworkSchema() {
       interactions INTEGER NOT NULL DEFAULT 0,
       new_contacts INTEGER NOT NULL DEFAULT 0,
       interventions INTEGER NOT NULL DEFAULT 0,
+      avatar TEXT,
+      bg_color TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       UNIQUE(worker_name, month)
     );`;
     await sql`CREATE INDEX IF NOT EXISTS idx_streetwork_month ON streetwork_stats(month);`;
+    // Add columns if they don't exist
+    await sql`ALTER TABLE streetwork_stats ADD COLUMN IF NOT EXISTS avatar TEXT;`;
+    await sql`ALTER TABLE streetwork_stats ADD COLUMN IF NOT EXISTS bg_color TEXT;`;
   } else {
     const { getSqlite } = await import('./sqlite');
     const db = await getSqlite();
@@ -624,11 +631,20 @@ async function ensureStreetworkSchema() {
       interactions INTEGER NOT NULL DEFAULT 0,
       new_contacts INTEGER NOT NULL DEFAULT 0,
       interventions INTEGER NOT NULL DEFAULT 0,
+      avatar TEXT,
+      bg_color TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(worker_name, month)
     )`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_streetwork_month ON streetwork_stats(month)`);
+    // Try to add columns if they don't exist (ignore errors)
+    try {
+      await db.execute(`ALTER TABLE streetwork_stats ADD COLUMN avatar TEXT`);
+    } catch {}
+    try {
+      await db.execute(`ALTER TABLE streetwork_stats ADD COLUMN bg_color TEXT`);
+    } catch {}
   }
 }
 
@@ -649,6 +665,8 @@ export async function getStreetworkStats(month?: string): Promise<StreetworkStat
       interactions: Number(r.interactions),
       newContacts: Number(r.new_contacts),
       interventions: Number(r.interventions),
+      avatar: r.avatar ?? null,
+      bgColor: r.bg_color ?? null,
       createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
       updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
     }));
@@ -669,6 +687,8 @@ export async function getStreetworkStats(month?: string): Promise<StreetworkStat
       interactions: Number(r.interactions),
       newContacts: Number(r.new_contacts),
       interventions: Number(r.interventions),
+      avatar: r.avatar ? String(r.avatar) : null,
+      bgColor: r.bg_color ? String(r.bg_color) : null,
       createdAt: String(r.created_at),
       updatedAt: String(r.updated_at),
     }));
@@ -681,18 +701,22 @@ export async function upsertStreetworkStat(input: {
   interactions: number;
   newContacts: number;
   interventions: number;
+  avatar?: string | null;
+  bgColor?: string | null;
 }): Promise<StreetworkStat> {
-  const { workerName, month, interactions, newContacts, interventions } = input;
+  const { workerName, month, interactions, newContacts, interventions, avatar, bgColor } = input;
 
   if (isPostgresSelected()) {
     const res = await sql`
-      INSERT INTO streetwork_stats (worker_name, month, interactions, new_contacts, interventions)
-      VALUES (${workerName}, ${month}, ${interactions}, ${newContacts}, ${interventions})
+      INSERT INTO streetwork_stats (worker_name, month, interactions, new_contacts, interventions, avatar, bg_color)
+      VALUES (${workerName}, ${month}, ${interactions}, ${newContacts}, ${interventions}, ${avatar ?? null}, ${bgColor ?? null})
       ON CONFLICT (worker_name, month)
       DO UPDATE SET
         interactions = ${interactions},
         new_contacts = ${newContacts},
         interventions = ${interventions},
+        avatar = ${avatar ?? null},
+        bg_color = ${bgColor ?? null},
         updated_at = now()
       RETURNING *
     `;
@@ -704,6 +728,8 @@ export async function upsertStreetworkStat(input: {
       interactions: Number(r.interactions),
       newContacts: Number(r.new_contacts),
       interventions: Number(r.interventions),
+      avatar: r.avatar ?? null,
+      bgColor: r.bg_color ?? null,
       createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
       updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
     };
@@ -711,13 +737,15 @@ export async function upsertStreetworkStat(input: {
     const { getSqlite } = await import('./sqlite');
     const db = await getSqlite();
     await db.execute({
-      sql: `INSERT INTO streetwork_stats (worker_name, month, interactions, new_contacts, interventions)
-            VALUES (?, ?, ?, ?, ?)
+      sql: `INSERT INTO streetwork_stats (worker_name, month, interactions, new_contacts, interventions, avatar, bg_color)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(worker_name, month)
             DO UPDATE SET
               interactions = ?,
               new_contacts = ?,
               interventions = ?,
+              avatar = ?,
+              bg_color = ?,
               updated_at = datetime('now')`,
       args: [
         workerName,
@@ -725,9 +753,13 @@ export async function upsertStreetworkStat(input: {
         interactions,
         newContacts,
         interventions,
+        avatar ?? null,
+        bgColor ?? null,
         interactions,
         newContacts,
         interventions,
+        avatar ?? null,
+        bgColor ?? null,
       ],
     });
 
@@ -743,6 +775,8 @@ export async function upsertStreetworkStat(input: {
       interactions: Number(r.interactions),
       newContacts: Number(r.new_contacts),
       interventions: Number(r.interventions),
+      avatar: r.avatar ? String(r.avatar) : null,
+      bgColor: r.bg_color ? String(r.bg_color) : null,
       createdAt: String(r.created_at),
       updatedAt: String(r.updated_at),
     };

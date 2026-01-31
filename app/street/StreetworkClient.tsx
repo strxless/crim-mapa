@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 
 type StreetworkStat = {
   id: number;
@@ -9,11 +9,1076 @@ type StreetworkStat = {
   interactions: number;
   newContacts: number;
   interventions: number;
+  avatar?: string | null;
+  bgColor?: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 const WORKERS = ['Dawid', 'Julia', 'Łukasz', 'Mateusz'];
+
+const DEFAULT_AVATARS: Record<string, string> = {
+  Dawid: 'D',
+  Julia: 'J',
+  Łukasz: 'Ł',
+  Mateusz: 'M',
+};
+
+const DEFAULT_COLORS: Record<string, string> = {
+  Dawid: 'from-blue-500 to-indigo-500',
+  Julia: 'from-pink-500 to-purple-500',
+  Łukasz: 'from-green-500 to-teal-500',
+  Mateusz: 'from-orange-500 to-red-500',
+};
+
+const AVATAR_OPTIONS = [
+  // Litery
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z',
+  // Ludzie - Praca
+  '👨‍💼',
+  '👩‍💼',
+  '🧑‍💼',
+  '👨‍🎓',
+  '👩‍🎓',
+  '🧑‍🎓',
+  '👨‍🏫',
+  '👩‍🏫',
+  '🧑‍🏫',
+  '👨‍⚕️',
+  '👩‍⚕️',
+  '🧑‍⚕️',
+  '👨‍🔧',
+  '👩‍🔧',
+  '🧑‍🔧',
+  '👨‍🚒',
+  '👩‍🚒',
+  '🧑‍🚒',
+  '👨‍🌾',
+  '👩‍🌾',
+  '🧑‍🌾',
+  '👨‍🍳',
+  '👩‍🍳',
+  '🧑‍🍳',
+  '👨‍🎨',
+  '👩‍🎨',
+  '🧑‍🎨',
+  '👨‍✈️',
+  '👩‍✈️',
+  '🧑‍✈️',
+  '👨‍🚀',
+  '👩‍🚀',
+  '🧑‍🚀',
+  '👨‍⚖️',
+  '👩‍⚖️',
+  '🧑‍⚖️',
+  // Ludzie - Zwykli
+  '👨',
+  '👩',
+  '🧑',
+  '👦',
+  '👧',
+  '🧒',
+  '👶',
+  '👴',
+  '👵',
+  '🧓',
+  // Ludzie - Sporty
+  '🏃‍♂️',
+  '🏃‍♀️',
+  '🏃',
+  '🚴‍♂️',
+  '🚴‍♀️',
+  '🚴',
+  '🏋️‍♂️',
+  '🏋️‍♀️',
+  '🏋️',
+  '⛹️‍♂️',
+  '⛹️‍♀️',
+  '⛹️',
+  '🤸‍♂️',
+  '🤸‍♀️',
+  '🤸',
+  '🧘‍♂️',
+  '🧘‍♀️',
+  '🧘',
+  // Superbohaterowie & Fantasy
+  '🦸‍♂️',
+  '🦸‍♀️',
+  '🦸',
+  '🦹‍♂️',
+  '🦹‍♀️',
+  '🦹',
+  '🧙‍♂️',
+  '🧙‍♀️',
+  '🧙',
+  '🧚‍♂️',
+  '🧚‍♀️',
+  '🧚',
+  '🧛‍♂️',
+  '🧛‍♀️',
+  '🧛',
+  '🧜‍♂️',
+  '🧜‍♀️',
+  '🧜',
+  '🧝‍♂️',
+  '🧝‍♀️',
+  '🧝',
+  '🧞‍♂️',
+  '🧞‍♀️',
+  '🧞',
+  // Zwierzęta - Ssaki
+  '🐶',
+  '🐱',
+  '🐭',
+  '🐹',
+  '🐰',
+  '🦊',
+  '🐻',
+  '🐼',
+  '🐨',
+  '🐯',
+  '🦁',
+  '🐮',
+  '🐷',
+  '🐸',
+  '🐵',
+  '🐔',
+  '🐧',
+  '🐦',
+  '🦆',
+  '🦅',
+  '🦉',
+  '🦇',
+  '🐺',
+  '🐗',
+  '🐴',
+  '🦄',
+  '🐝',
+  '🐛',
+  '🦋',
+  '🐌',
+  '🐞',
+  '🐜',
+  '🦗',
+  '🕷️',
+  '🦂',
+  // Zwierzęta - Wodne
+  '🐙',
+  '🦑',
+  '🦐',
+  '🦞',
+  '🦀',
+  '🐡',
+  '🐠',
+  '🐟',
+  '🐬',
+  '🐳',
+  '🐋',
+  '🦈',
+  '🐊',
+  '🐢',
+  '🦎',
+  '🐍',
+  // Rośliny & Natura
+  '🌲',
+  '🌳',
+  '🌴',
+  '🌵',
+  '🌾',
+  '🌿',
+  '☘️',
+  '🍀',
+  '🍁',
+  '🍂',
+  '🍃',
+  '🌺',
+  '🌻',
+  '🌼',
+  '🌷',
+  '🌹',
+  '🥀',
+  '🌸',
+  '💐',
+  '🏵️',
+  '🌱',
+  '🪴',
+  '🌾',
+  '🍄',
+  '🌰',
+  // Jedzenie
+  '🍎',
+  '🍊',
+  '🍋',
+  '🍌',
+  '🍉',
+  '🍇',
+  '🍓',
+  '🍈',
+  '🍒',
+  '🍑',
+  '🥭',
+  '🍍',
+  '🥥',
+  '🥝',
+  '🍅',
+  '🍆',
+  '🥑',
+  '🥦',
+  '🥬',
+  '🥒',
+  '🌶️',
+  '🌽',
+  '🥕',
+  '🧄',
+  '🧅',
+  '🥔',
+  '🍠',
+  '🥐',
+  '🥯',
+  '🍞',
+  '🥖',
+  '🥨',
+  '🧀',
+  '🥚',
+  '🍳',
+  '🧈',
+  '🥞',
+  '🧇',
+  '🥓',
+  '🥩',
+  '🍗',
+  '🍖',
+  '🦴',
+  '🌭',
+  '🍔',
+  '🍟',
+  '🍕',
+  '🥪',
+  '🥙',
+  '🧆',
+  '🌮',
+  '🌯',
+  '🥗',
+  '🥘',
+  '🍝',
+  '🍜',
+  '🍲',
+  '🍛',
+  '🍣',
+  '🍱',
+  '🥟',
+  '🦪',
+  '🍤',
+  '🍙',
+  '🍚',
+  '🍘',
+  '🍥',
+  '🥠',
+  '🥮',
+  '🍢',
+  '🍡',
+  '🍧',
+  '🍨',
+  '🍦',
+  '🥧',
+  '🧁',
+  '🍰',
+  '🎂',
+  '🍮',
+  '🍭',
+  '🍬',
+  '🍫',
+  '🍿',
+  '🍩',
+  '🍪',
+  // Napoje
+  '☕',
+  '🍵',
+  '🧃',
+  '🥤',
+  '🧋',
+  '🍶',
+  '🍺',
+  '🍻',
+  '🥂',
+  '🍷',
+  '🥃',
+  '🍸',
+  '🍹',
+  '🧉',
+  '🍾',
+  // Sport & Aktywność
+  '⚽',
+  '🏀',
+  '🏈',
+  '⚾',
+  '🥎',
+  '🎾',
+  '🏐',
+  '🏉',
+  '🥏',
+  '🎱',
+  '🪀',
+  '🏓',
+  '🏸',
+  '🏒',
+  '🏑',
+  '🥍',
+  '🏏',
+  '🪃',
+  '🥅',
+  '⛳',
+  '🪁',
+  '🏹',
+  '🎣',
+  '🤿',
+  '🥊',
+  '🥋',
+  '🎽',
+  '🛹',
+  '🛼',
+  '🛷',
+  '⛸️',
+  '🥌',
+  '🎿',
+  '⛷️',
+  '🏂',
+  '🪂',
+  '🏋️',
+  '🤼',
+  '🤸',
+  '⛹️',
+  '🤺',
+  '🤾',
+  '🏌️',
+  '🏇',
+  '🧘',
+  '🏄',
+  '🏊',
+  '🤽',
+  '🚣',
+  '🧗',
+  '🚵',
+  '🚴',
+  '🏆',
+  '🥇',
+  '🥈',
+  '🥉',
+  '🏅',
+  '🎖️',
+  // Transport
+  '🚗',
+  '🚕',
+  '🚙',
+  '🚌',
+  '🚎',
+  '🏎️',
+  '🚓',
+  '🚑',
+  '🚒',
+  '🚐',
+  '🛻',
+  '🚚',
+  '🚛',
+  '🚜',
+  '🦯',
+  '🦽',
+  '🦼',
+  '🛴',
+  '🚲',
+  '🛵',
+  '🏍️',
+  '🛺',
+  '🚨',
+  '🚔',
+  '🚍',
+  '🚘',
+  '🚖',
+  '🚡',
+  '🚠',
+  '🚟',
+  '🚃',
+  '🚋',
+  '🚞',
+  '🚝',
+  '🚄',
+  '🚅',
+  '🚈',
+  '🚂',
+  '🚆',
+  '🚇',
+  '🚊',
+  '🚉',
+  '✈️',
+  '🛫',
+  '🛬',
+  '🛩️',
+  '💺',
+  '🛰️',
+  '🚀',
+  '🛸',
+  '🚁',
+  '🛶',
+  '⛵',
+  '🚤',
+  '🛥️',
+  '🛳️',
+  '⛴️',
+  '🚢',
+  '⚓',
+  '⛽',
+  '🚧',
+  // Przedmioty
+  '⌚',
+  '📱',
+  '💻',
+  '⌨️',
+  '🖥️',
+  '🖨️',
+  '🖱️',
+  '🖲️',
+  '🕹️',
+  '🗜️',
+  '💾',
+  '💿',
+  '📀',
+  '📼',
+  '📷',
+  '📸',
+  '📹',
+  '🎥',
+  '📽️',
+  '🎞️',
+  '📞',
+  '☎️',
+  '📟',
+  '📠',
+  '📺',
+  '📻',
+  '🎙️',
+  '🎚️',
+  '🎛️',
+  '🧭',
+  '⏱️',
+  '⏲️',
+  '⏰',
+  '🕰️',
+  '⌛',
+  '⏳',
+  '📡',
+  '🔋',
+  '🔌',
+  '💡',
+  '🔦',
+  '🕯️',
+  '🪔',
+  '🧯',
+  '🛢️',
+  '💸',
+  '💵',
+  '💴',
+  '💶',
+  '💷',
+  '🪙',
+  '💰',
+  '💳',
+  '🧾',
+  '✉️',
+  '📧',
+  '📨',
+  '📩',
+  '📤',
+  '📥',
+  '📦',
+  '📫',
+  '📪',
+  '📬',
+  '📭',
+  '📮',
+  '🗳️',
+  '✏️',
+  '✒️',
+  '🖋️',
+  '🖊️',
+  '🖌️',
+  '🖍️',
+  '📝',
+  '💼',
+  '📁',
+  '📂',
+  '🗂️',
+  '📅',
+  '📆',
+  '🗒️',
+  '🗓️',
+  '📇',
+  '📈',
+  '📉',
+  '📊',
+  '📋',
+  '📌',
+  '📍',
+  '📎',
+  '🖇️',
+  '📏',
+  '📐',
+  '✂️',
+  '🗃️',
+  '🗄️',
+  '🗑️',
+  '🔒',
+  '🔓',
+  '🔏',
+  '🔐',
+  '🔑',
+  '🗝️',
+  '🔨',
+  '🪓',
+  '⛏️',
+  '⚒️',
+  '🛠️',
+  '🗡️',
+  '⚔️',
+  '🔫',
+  '🪃',
+  '🏹',
+  '🛡️',
+  '🪚',
+  '🔧',
+  '🪛',
+  '🔩',
+  '⚙️',
+  '🗜️',
+  '⚖️',
+  '🦯',
+  '🔗',
+  '⛓️',
+  '🪝',
+  '🧰',
+  '🧲',
+  '🪜',
+  '🧪',
+  '🧫',
+  '🧬',
+  '🔬',
+  '🔭',
+  '📡',
+  '💉',
+  '🩸',
+  '💊',
+  '🩹',
+  '🩼',
+  '🩺',
+  '🩻',
+  '🚪',
+  '🪞',
+  '🪟',
+  '🛏️',
+  '🛋️',
+  '🪑',
+  '🚽',
+  '🪠',
+  '🚿',
+  '🛁',
+  '🪤',
+  '🪒',
+  '🧴',
+  '🧷',
+  '🧹',
+  '🧺',
+  '🧻',
+  '🪣',
+  '🧼',
+  '🫧',
+  '🪥',
+  '🧽',
+  '🧯',
+  '🛒',
+  // Symbole & Emoji
+  '❤️',
+  '🧡',
+  '💛',
+  '💚',
+  '💙',
+  '💜',
+  '🖤',
+  '🤍',
+  '🤎',
+  '💔',
+  '❣️',
+  '💕',
+  '💞',
+  '💓',
+  '💗',
+  '💖',
+  '💘',
+  '💝',
+  '💟',
+  '☮️',
+  '✝️',
+  '☪️',
+  '🕉️',
+  '☸️',
+  '✡️',
+  '🔯',
+  '🕎',
+  '☯️',
+  '☦️',
+  '🛐',
+  '⛎',
+  '♈',
+  '♉',
+  '♊',
+  '♋',
+  '♌',
+  '♍',
+  '♎',
+  '♏',
+  '♐',
+  '♑',
+  '♒',
+  '♓',
+  '🆔',
+  '⚛️',
+  '🉑',
+  '☢️',
+  '☣️',
+  '📴',
+  '📳',
+  '🈶',
+  '🈚',
+  '🈸',
+  '🈺',
+  '🈷️',
+  '✴️',
+  '🆚',
+  '💮',
+  '🉐',
+  '㊙️',
+  '㊗️',
+  '🈴',
+  '🈵',
+  '🈹',
+  '🈲',
+  '🅰️',
+  '🅱️',
+  '🆎',
+  '🆑',
+  '🅾️',
+  '🆘',
+  '❌',
+  '⭕',
+  '🛑',
+  '⛔',
+  '📛',
+  '🚫',
+  '💯',
+  '💢',
+  '♨️',
+  '🚷',
+  '🚯',
+  '🚳',
+  '🚱',
+  '🔞',
+  '📵',
+  '🚭',
+  '❗',
+  '❕',
+  '❓',
+  '❔',
+  '‼️',
+  '⁉️',
+  '🔅',
+  '🔆',
+  '〽️',
+  '⚠️',
+  '🚸',
+  '🔱',
+  '⚜️',
+  '🔰',
+  '♻️',
+  '✅',
+  '🈯',
+  '💹',
+  '❇️',
+  '✳️',
+  '❎',
+  '🌐',
+  '💠',
+  '🌀',
+  '💤',
+  '🏧',
+  '🚾',
+  '♿',
+  '🅿️',
+  '🛗',
+  '🈳',
+  '🈂️',
+  '🛂',
+  '🛃',
+  '🛄',
+  '🛅',
+  '🚹',
+  '🚺',
+  '🚼',
+  '⚧️',
+  '🚻',
+  '🚮',
+  '🎦',
+  '📶',
+  '🈁',
+  '🔣',
+  'ℹ️',
+  '🔤',
+  '🔡',
+  '🔠',
+  '🆖',
+  '🆗',
+  '🆙',
+  '🆒',
+  '🆕',
+  '🆓',
+  '0️⃣',
+  '1️⃣',
+  '2️⃣',
+  '3️⃣',
+  '4️⃣',
+  '5️⃣',
+  '6️⃣',
+  '7️⃣',
+  '8️⃣',
+  '9️⃣',
+  '🔟',
+  // Flagi
+  '🏁',
+  '🚩',
+  '🎌',
+  '🏴',
+  '🏳️',
+  '🏳️‍🌈',
+  '🏳️‍⚧️',
+  '🏴‍☠️',
+  // Pogoda
+  '☀️',
+  '🌤️',
+  '⛅',
+  '🌥️',
+  '☁️',
+  '🌦️',
+  '🌧️',
+  '⛈️',
+  '🌩️',
+  '🌨️',
+  '❄️',
+  '☃️',
+  '⛄',
+  '🌬️',
+  '💨',
+  '🌪️',
+  '🌫️',
+  '🌈',
+  '☔',
+  '💧',
+  '💦',
+  '🌊',
+  '⚡',
+  '🔥',
+  '💥',
+  '✨',
+  '🌟',
+  '⭐',
+  '🌠',
+  '🌌',
+  '☄️',
+  // Czas & Niebo
+  '🌑',
+  '🌒',
+  '🌓',
+  '🌔',
+  '🌕',
+  '🌖',
+  '🌗',
+  '🌘',
+  '🌙',
+  '🌚',
+  '🌛',
+  '🌜',
+  '☀️',
+  '🌝',
+  '🌞',
+  '🪐',
+  '⭐',
+  '🌟',
+  '✨',
+  '💫',
+  '🌠',
+  // Muzyka
+  '🎵',
+  '🎶',
+  '🎼',
+  '🎹',
+  '🎸',
+  '🎺',
+  '🎷',
+  '🥁',
+  '🎻',
+  '🪕',
+  '🪘',
+  '🪗',
+  '🎤',
+  '🎧',
+  '📻',
+  '🎙️',
+  // Celebracja
+  '🎉',
+  '🎊',
+  '🎈',
+  '🎀',
+  '🎁',
+  '🎗️',
+  '🎟️',
+  '🎫',
+  '🎖️',
+  '🏆',
+  '🥇',
+  '🥈',
+  '🥉',
+  '⚽',
+  '🏀',
+  '🏈',
+  '⚾',
+  '🥎',
+  '🎾',
+  '🏐',
+  '🏉',
+  '🥏',
+  '🎱',
+  '🏓',
+  '🏸',
+  '🏒',
+  '🏑',
+  '🥍',
+  '🏏',
+  '⛳',
+  '🏹',
+  '🎣',
+  '🥊',
+  '🥋',
+  // Gry
+  '🎮',
+  '🕹️',
+  '🎯',
+  '🎲',
+  '🎰',
+  '🃏',
+  '🀄',
+  '🎴',
+  '🎭',
+  '🎨',
+  '🧩',
+  // Miejsca
+  '🌍',
+  '🌎',
+  '🌏',
+  '🗺️',
+  '🧭',
+  '🏔️',
+  '⛰️',
+  '🌋',
+  '🗻',
+  '🏕️',
+  '🏖️',
+  '🏜️',
+  '🏝️',
+  '🏞️',
+  '🏟️',
+  '🏛️',
+  '🏗️',
+  '🧱',
+  '🪨',
+  '🪵',
+  '🛖',
+  '🏘️',
+  '🏚️',
+  '🏠',
+  '🏡',
+  '🏢',
+  '🏣',
+  '🏤',
+  '🏥',
+  '🏦',
+  '🏨',
+  '🏩',
+  '🏪',
+  '🏫',
+  '🏬',
+  '🏭',
+  '🏯',
+  '🏰',
+  '💒',
+  '🗼',
+  '🗽',
+  '⛪',
+  '🕌',
+  '🛕',
+  '🕍',
+  '⛩️',
+  '🕋',
+  '⛲',
+  '⛺',
+  '🌁',
+  '🌃',
+  '🏙️',
+  '🌄',
+  '🌅',
+  '🌆',
+  '🌇',
+  '🌉',
+  '🎠',
+  '🎡',
+  '🎢',
+  '🚂',
+  '🚃',
+  '🚄',
+  '🚅',
+];
+
+const COLOR_OPTIONS = [
+  // Podstawowe
+  { name: 'Niebieski', value: 'from-blue-500 to-indigo-500' },
+  { name: 'Różowy', value: 'from-pink-500 to-purple-500' },
+  { name: 'Zielony', value: 'from-green-500 to-teal-500' },
+  { name: 'Pomarańczowy', value: 'from-orange-500 to-red-500' },
+  { name: 'Fioletowy', value: 'from-purple-500 to-indigo-500' },
+  { name: 'Turkusowy', value: 'from-cyan-500 to-blue-500' },
+  { name: 'Żółty', value: 'from-yellow-500 to-orange-500' },
+  { name: 'Szary', value: 'from-slate-500 to-gray-500' },
+
+  // Jasne & Pastelowe
+  { name: 'Jasny Niebieski', value: 'from-blue-300 to-blue-400' },
+  { name: 'Jasny Różowy', value: 'from-pink-300 to-pink-400' },
+  { name: 'Jasny Zielony', value: 'from-green-300 to-green-400' },
+  { name: 'Jasny Fioletowy', value: 'from-purple-300 to-purple-400' },
+  { name: 'Pastelowy Błękit', value: 'from-sky-200 to-blue-300' },
+  { name: 'Pastelowy Róż', value: 'from-rose-200 to-pink-300' },
+  { name: 'Miętowy', value: 'from-emerald-200 to-teal-300' },
+  { name: 'Lawendowy', value: 'from-violet-200 to-purple-300' },
+
+  // Ciemne & Intensywne
+  { name: 'Ciemny Niebieski', value: 'from-blue-700 to-blue-900' },
+  { name: 'Ciemny Fiolet', value: 'from-purple-700 to-purple-900' },
+  { name: 'Ciemny Zielony', value: 'from-green-700 to-green-900' },
+  { name: 'Ciemny Czerwony', value: 'from-red-700 to-red-900' },
+  { name: 'Granatowy', value: 'from-indigo-800 to-blue-900' },
+  { name: 'Bordowy', value: 'from-rose-800 to-red-900' },
+  { name: 'Butelkowy', value: 'from-emerald-800 to-green-900' },
+  { name: 'Śliwkowy', value: 'from-purple-800 to-violet-900' },
+
+  // Neonowe & Żywe
+  { name: 'Neon Różowy', value: 'from-pink-500 to-fuchsia-600' },
+  { name: 'Neon Zielony', value: 'from-lime-400 to-green-500' },
+  { name: 'Neon Niebieski', value: 'from-cyan-400 to-blue-500' },
+  { name: 'Neon Pomarańcz', value: 'from-orange-400 to-red-500' },
+  { name: 'Electric Purple', value: 'from-violet-500 to-purple-600' },
+  { name: 'Cyber Yellow', value: 'from-yellow-400 to-amber-500' },
+
+  // Gradienty wielokolorowe
+  { name: 'Tęcza', value: 'from-red-500 via-yellow-500 to-green-500' },
+  { name: 'Zachód Słońca', value: 'from-orange-500 via-pink-500 to-purple-600' },
+  { name: 'Ocean', value: 'from-blue-400 via-cyan-500 to-teal-600' },
+  { name: 'Las', value: 'from-green-400 via-emerald-500 to-teal-600' },
+  { name: 'Lawenda', value: 'from-purple-400 via-pink-500 to-rose-500' },
+  { name: 'Ogień', value: 'from-yellow-400 via-orange-500 to-red-600' },
+  { name: 'Lodowiec', value: 'from-cyan-300 via-blue-400 to-indigo-500' },
+  { name: 'Purpura', value: 'from-fuchsia-500 via-purple-600 to-indigo-700' },
+
+  // Specjalne
+  { name: 'Złoto', value: 'from-yellow-400 to-amber-600' },
+  { name: 'Srebro', value: 'from-slate-300 to-gray-400' },
+  { name: 'Brąz', value: 'from-amber-600 to-orange-800' },
+  { name: 'Miedź', value: 'from-orange-400 to-red-600' },
+  { name: 'Perła', value: 'from-slate-200 to-zinc-300' },
+  { name: 'Ametyst', value: 'from-purple-500 to-violet-700' },
+  { name: 'Szmaragd', value: 'from-emerald-500 to-green-700' },
+  { name: 'Szafir', value: 'from-blue-600 to-indigo-800' },
+  { name: 'Rubin', value: 'from-red-500 to-rose-700' },
+  { name: 'Bursztyn', value: 'from-amber-400 to-orange-600' },
+
+  // Naturalne
+  { name: 'Piasek', value: 'from-yellow-200 to-amber-400' },
+  { name: 'Woda', value: 'from-blue-300 to-cyan-500' },
+  { name: 'Ziemia', value: 'from-amber-700 to-stone-800' },
+  { name: 'Niebo', value: 'from-sky-300 to-blue-500' },
+  { name: 'Trawa', value: 'from-lime-400 to-green-600' },
+  { name: 'Kamień', value: 'from-gray-400 to-slate-600' },
+  { name: 'Kora', value: 'from-amber-800 to-stone-900' },
+  { name: 'Mech', value: 'from-lime-600 to-green-700' },
+
+  // Monochromatyczne
+  { name: 'Czarny', value: 'from-gray-900 to-black' },
+  { name: 'Biały', value: 'from-white to-gray-100' },
+  { name: 'Węgiel', value: 'from-slate-800 to-gray-900' },
+  { name: 'Kość Słoniowa', value: 'from-stone-100 to-zinc-200' },
+
+  // Vintage
+  { name: 'Retro Orange', value: 'from-orange-300 to-amber-500' },
+  { name: 'Retro Green', value: 'from-lime-500 to-green-600' },
+  { name: 'Retro Blue', value: 'from-sky-400 to-blue-500' },
+  { name: 'Retro Pink', value: 'from-pink-400 to-rose-500' },
+  { name: 'Vintage Brown', value: 'from-yellow-700 to-orange-800' },
+  { name: 'Vintage Teal', value: 'from-teal-500 to-cyan-700' },
+
+  // Cosmic & Space
+  { name: 'Galaktyka', value: 'from-indigo-900 via-purple-800 to-pink-700' },
+  { name: 'Nebula', value: 'from-purple-900 via-fuchsia-700 to-pink-600' },
+  { name: 'Kosmos', value: 'from-slate-900 via-blue-900 to-indigo-900' },
+  { name: 'Aurora', value: 'from-green-400 via-cyan-500 to-purple-600' },
+  { name: 'Mars', value: 'from-red-600 to-orange-800' },
+  { name: 'Neptun', value: 'from-blue-600 to-indigo-800' },
+
+  // Candy & Sweet
+  { name: 'Arbuz', value: 'from-green-400 to-pink-500' },
+  { name: 'Malina', value: 'from-pink-500 to-red-600' },
+  { name: 'Cytryna', value: 'from-yellow-300 to-lime-400' },
+  { name: 'Jagoda', value: 'from-blue-500 to-purple-600' },
+  { name: 'Truskawka', value: 'from-red-400 to-pink-500' },
+  { name: 'Mięta', value: 'from-teal-300 to-green-400' },
+  { name: 'Wanilia', value: 'from-amber-100 to-yellow-200' },
+  { name: 'Czekolada', value: 'from-amber-800 to-stone-900' },
+
+  // Professional
+  { name: 'Corporate Blue', value: 'from-blue-600 to-slate-700' },
+  { name: 'Business Gray', value: 'from-slate-600 to-zinc-700' },
+  { name: 'Executive Black', value: 'from-slate-800 to-black' },
+  { name: 'Premium Gold', value: 'from-amber-500 to-yellow-600' },
+  { name: 'Trust Navy', value: 'from-blue-800 to-indigo-900' },
+  { name: 'Success Green', value: 'from-emerald-600 to-green-700' },
+];
 
 const STAT_COLORS = {
   interactions: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: '💬' },
@@ -31,80 +1096,6 @@ const STAT_COLORS = {
   },
 };
 
-const AVATAR_EMOJIS = [
-  '👨',
-  '👩',
-  '🧑',
-  '👤',
-  '😊',
-  '🙂',
-  '😎',
-  '🤓',
-  '👨‍💼',
-  '👩‍💼',
-  '🧑‍💼',
-  '🦸',
-  '🦹',
-  '🧙',
-  '🧚',
-  '🧛',
-  '🧜',
-  '🧝',
-  '🧞',
-  '🧟',
-  '💀',
-  '👽',
-  '👾',
-  '🤖',
-  '🎃',
-  '😈',
-  '👿',
-  '👹',
-  '👺',
-  '💩',
-  '👻',
-  '☠️',
-  '🔥',
-  '💥',
-  '⭐',
-  '✨',
-  '💫',
-  '🌟',
-  '⚡',
-  '💯',
-  '🎯',
-  '🎨',
-  '🎭',
-  '🎪',
-  '🎸',
-  '🎮',
-  '🎲',
-  '🎱',
-  '🏆',
-  '🥇',
-  '🏅',
-  '💎',
-  '👑',
-  '🦄',
-  '🐉',
-  '🦁',
-  '🐯',
-  '🐺',
-  '🦊',
-  '🐻',
-  '🐼',
-  '🐨',
-  '🐱',
-  '🐶',
-  '🐷',
-  '🐸',
-  '🐵',
-  '🦍',
-  '🦧',
-  '🐔',
-  '🐧',
-];
-
 export default function StreetworkClient({
   initialStats,
   initialMonths,
@@ -117,19 +1108,10 @@ export default function StreetworkClient({
   const [selectedMonth, setSelectedMonth] = useState<string>(
     initialMonths[0] || new Date().toISOString().slice(0, 7)
   );
-  const [avatars, setAvatars] = useState<Record<string, string>>({});
-  const [isClient, setIsClient] = useState(false);
-  const [editingAvatar, setEditingAvatar] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
-
-  // Load avatars from localStorage only on client side
-  useEffect(() => {
-    setIsClient(true);
-    const stored = localStorage.getItem('worker-avatars');
-    if (stored) {
-      setAvatars(JSON.parse(stored));
-    }
-  }, []);
+  const [editingWorker, setEditingWorker] = useState<string | null>(null);
+  const [tempAvatar, setTempAvatar] = useState<string>('');
+  const [tempBgColor, setTempBgColor] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Get stats for selected month
   const monthStats = useMemo(() => {
@@ -158,24 +1140,61 @@ export default function StreetworkClient({
     return { interactions, newContacts, interventions };
   }, [monthStats]);
 
-  const updateStat = async (
+  const openAvatarModal = (worker: string) => {
+    const stat = monthStats[worker];
+    setEditingWorker(worker);
+    setTempAvatar(stat?.avatar || DEFAULT_AVATARS[worker]);
+    setTempBgColor(stat?.bgColor || DEFAULT_COLORS[worker]);
+  };
+
+  const closeAvatarModal = () => {
+    setEditingWorker(null);
+    setTempAvatar('');
+    setTempBgColor('');
+  };
+
+  const saveAvatar = async () => {
+    if (!editingWorker) return;
+
+    setIsSaving(true);
+    try {
+      const stat = monthStats[editingWorker];
+      await fetch('/api/streetwork', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workerName: editingWorker,
+          month: selectedMonth,
+          interactions: stat?.interactions || 0,
+          newContacts: stat?.newContacts || 0,
+          interventions: stat?.interventions || 0,
+          avatar: tempAvatar,
+          bgColor: tempBgColor,
+        }),
+      });
+
+      const response = await fetch('/api/streetwork');
+      const data = await response.json();
+      setStats(data.stats);
+      closeAvatarModal();
+    } catch (error) {
+      console.error('Error saving avatar:', error);
+      alert('Błąd podczas zapisywania');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const incrementStat = async (
     worker: string,
     field: 'interactions' | 'newContacts' | 'interventions',
     delta: number
   ) => {
-    const currentStat = monthStats[worker];
-    const currentValue = currentStat?.[field] || 0;
+    const stat = monthStats[worker];
+    const currentValue = stat?.[field] || 0;
     const newValue = Math.max(0, currentValue + delta);
 
-    // Optimistic update
-    setStats((prev) =>
-      prev.map((s) =>
-        s.workerName === worker && s.month === selectedMonth ? { ...s, [field]: newValue } : s
-      )
-    );
-
-    setIsSaving((prev) => ({ ...prev, [worker]: true }));
-
+    setIsSaving(true);
     try {
       await fetch('/api/streetwork', {
         method: 'POST',
@@ -183,46 +1202,39 @@ export default function StreetworkClient({
         body: JSON.stringify({
           workerName: worker,
           month: selectedMonth,
-          interactions: currentStat?.interactions || 0,
-          newContacts: currentStat?.newContacts || 0,
-          interventions: currentStat?.interventions || 0,
-          [field]: newValue,
+          interactions: field === 'interactions' ? newValue : stat?.interactions || 0,
+          newContacts: field === 'newContacts' ? newValue : stat?.newContacts || 0,
+          interventions: field === 'interventions' ? newValue : stat?.interventions || 0,
+          avatar: stat?.avatar || DEFAULT_AVATARS[worker],
+          bgColor: stat?.bgColor || DEFAULT_COLORS[worker],
         }),
       });
 
-      // Refresh stats
       const response = await fetch('/api/streetwork');
       const data = await response.json();
       setStats(data.stats);
     } catch (error) {
       console.error('Error updating stat:', error);
-      alert('Błąd podczas zapisywania danych');
-      // Revert on error
-      const response = await fetch('/api/streetwork');
-      const data = await response.json();
-      setStats(data.stats);
+      alert('Błąd podczas zapisywania');
     } finally {
-      setIsSaving((prev) => ({ ...prev, [worker]: false }));
+      setIsSaving(false);
     }
-  };
-
-  const getAvatar = (worker: string) => {
-    // Always show first letter during SSR and initial render for consistency
-    if (!isClient) return worker.charAt(0);
-    return avatars[worker] || worker.charAt(0);
-  };
-
-  const setAvatar = (worker: string, avatar: string) => {
-    const newAvatars = { ...avatars, [worker]: avatar };
-    setAvatars(newAvatars);
-    localStorage.setItem('worker-avatars', JSON.stringify(newAvatars));
-    setEditingAvatar(null);
   };
 
   const formatMonthName = (month: string) => {
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1);
     return date.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+  };
+
+  const getWorkerAvatar = (worker: string) => {
+    const stat = monthStats[worker];
+    return stat?.avatar || DEFAULT_AVATARS[worker];
+  };
+
+  const getWorkerColor = (worker: string) => {
+    const stat = monthStats[worker];
+    return stat?.bgColor || DEFAULT_COLORS[worker];
   };
 
   return (
@@ -240,30 +1252,26 @@ export default function StreetworkClient({
 
         {/* Month Selector */}
         <div className="p-3 mb-4 bg-white shadow-lg rounded-xl sm:p-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
-            <div className="flex-1">
-              <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-700">
-                Wybierz miesiąc
-              </label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full px-3 py-2 text-sm border rounded-lg border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-base"
-              >
-                {months.map((month) => (
-                  <option key={month} value={month}>
-                    {formatMonthName(month)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-700">
+            Wybierz miesiąc
+          </label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full px-3 py-2 text-sm border rounded-lg border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-base"
+          >
+            {months.map((month) => (
+              <option key={month} value={month}>
+                {formatMonthName(month)}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Month Summary */}
         <div className="p-3 mb-4 border-2 border-purple-200 shadow-lg bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl sm:p-4 md:p-6 sm:mb-6">
           <h2 className="mb-3 text-sm font-bold sm:text-base md:text-lg text-slate-900 sm:mb-4">
-            📊 Podsumowanie miesiąca: {formatMonthName(selectedMonth)}
+            Podsumowanie miesiąca: {formatMonthName(selectedMonth)}
           </h2>
           <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
             <div className="p-2 bg-white border-2 border-blue-200 rounded-lg sm:p-3 md:p-4">
@@ -294,87 +1302,20 @@ export default function StreetworkClient({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {WORKERS.map((worker) => {
             const stat = monthStats[worker];
-            const saving = isSaving[worker];
 
             return (
-              <div
-                key={worker}
-                className="relative p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6"
-              >
-                {saving && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
-                    <svg
-                      className="w-8 h-8 text-purple-600 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                  </div>
-                )}
-
+              <div key={worker} className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
                 <div className="flex items-center mb-4 gap-3">
-                  <div className="relative">
-                    <div
-                      className="flex items-center justify-center w-10 h-10 text-lg font-bold text-white rounded-full cursor-pointer sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-indigo-500 sm:text-xl hover:scale-110 transition-transform"
-                      onClick={() => setEditingAvatar(editingAvatar === worker ? null : worker)}
-                    >
-                      {getAvatar(worker)}
-                    </div>
-                    {editingAvatar === worker && (
-                      <>
-                        {/* Backdrop to close picker when clicking outside */}
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => setEditingAvatar(null)}
-                        />
-                        {/* Emoji picker */}
-                        <div className="absolute left-0 z-20 w-64 p-3 mt-2 overflow-y-auto bg-white border-2 border-purple-200 rounded-lg shadow-xl top-full max-h-64 sm:w-72 sm:max-h-80">
-                          <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
-                            {AVATAR_EMOJIS.map((emoji, idx) => (
-                              <button
-                                key={idx}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setAvatar(worker, emoji);
-                                }}
-                                className="flex items-center justify-center w-8 h-8 text-xl rounded-lg transition-all hover:bg-purple-100 hover:scale-110 active:scale-95"
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAvatar(worker, worker.charAt(0));
-                              }}
-                              className="flex items-center justify-center w-8 h-8 text-sm font-bold rounded-lg transition-all hover:bg-purple-100 hover:scale-110 active:scale-95 text-slate-700 bg-slate-100"
-                            >
-                              {worker.charAt(0)}
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div>
+                  <button
+                    onClick={() => openAvatarModal(worker)}
+                    className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${getWorkerColor(worker)} rounded-full flex items-center justify-center text-white font-bold text-xl sm:text-2xl hover:scale-110 transition-transform cursor-pointer shadow-lg hover:shadow-xl`}
+                  >
+                    {getWorkerAvatar(worker)}
+                  </button>
+                  <div className="flex-1">
                     <h3 className="text-base font-bold sm:text-lg md:text-xl text-slate-900">
                       {worker}
                     </h3>
-                    <p className="text-xs text-slate-500">Streetworker</p>
                   </div>
                 </div>
 
@@ -385,7 +1326,9 @@ export default function StreetworkClient({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{STAT_COLORS.interactions.icon}</span>
+                        <span className="text-base sm:text-lg">
+                          {STAT_COLORS.interactions.icon}
+                        </span>
                         <span className="text-xs font-medium sm:text-sm text-slate-700">
                           Interakcje
                         </span>
@@ -398,42 +1341,18 @@ export default function StreetworkClient({
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => updateStat(worker, 'interactions', -1)}
-                        disabled={saving || (stat?.interactions || 0) === 0}
-                        className="flex items-center justify-center flex-1 py-2 text-white bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => incrementStat(worker, 'interactions', -1)}
+                        disabled={isSaving || (stat?.interactions || 0) === 0}
+                        className="flex-1 px-3 py-2 text-lg font-bold text-blue-700 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 12H4"
-                          />
-                        </svg>
+                        −
                       </button>
                       <button
-                        onClick={() => updateStat(worker, 'interactions', 1)}
-                        disabled={saving}
-                        className="flex items-center justify-center flex-1 py-2 text-white bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => incrementStat(worker, 'interactions', 1)}
+                        disabled={isSaving}
+                        className="flex-1 px-3 py-2 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4v16m8-8H4"
-                          />
-                        </svg>
+                        +
                       </button>
                     </div>
                   </div>
@@ -444,7 +1363,7 @@ export default function StreetworkClient({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{STAT_COLORS.newContacts.icon}</span>
+                        <span className="text-base sm:text-lg">{STAT_COLORS.newContacts.icon}</span>
                         <span className="text-xs font-medium sm:text-sm text-slate-700">
                           Nowe kontakty
                         </span>
@@ -457,42 +1376,18 @@ export default function StreetworkClient({
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => updateStat(worker, 'newContacts', -1)}
-                        disabled={saving || (stat?.newContacts || 0) === 0}
-                        className="flex items-center justify-center flex-1 py-2 text-white bg-green-500 rounded-lg transition-colors hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => incrementStat(worker, 'newContacts', -1)}
+                        disabled={isSaving || (stat?.newContacts || 0) === 0}
+                        className="flex-1 px-3 py-2 text-lg font-bold text-green-700 bg-white border-2 border-green-300 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 12H4"
-                          />
-                        </svg>
+                        −
                       </button>
                       <button
-                        onClick={() => updateStat(worker, 'newContacts', 1)}
-                        disabled={saving}
-                        className="flex items-center justify-center flex-1 py-2 text-white bg-green-500 rounded-lg transition-colors hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => incrementStat(worker, 'newContacts', 1)}
+                        disabled={isSaving}
+                        className="flex-1 px-3 py-2 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4v16m8-8H4"
-                          />
-                        </svg>
+                        +
                       </button>
                     </div>
                   </div>
@@ -503,7 +1398,9 @@ export default function StreetworkClient({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{STAT_COLORS.interventions.icon}</span>
+                        <span className="text-base sm:text-lg">
+                          {STAT_COLORS.interventions.icon}
+                        </span>
                         <span className="text-xs font-medium sm:text-sm text-slate-700">
                           Interwencje
                         </span>
@@ -516,42 +1413,18 @@ export default function StreetworkClient({
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => updateStat(worker, 'interventions', -1)}
-                        disabled={saving || (stat?.interventions || 0) === 0}
-                        className="flex items-center justify-center flex-1 py-2 text-white rounded-lg transition-colors bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => incrementStat(worker, 'interventions', -1)}
+                        disabled={isSaving || (stat?.interventions || 0) === 0}
+                        className="flex-1 px-3 py-2 text-lg font-bold bg-white border-2 rounded-lg border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 12H4"
-                          />
-                        </svg>
+                        −
                       </button>
                       <button
-                        onClick={() => updateStat(worker, 'interventions', 1)}
-                        disabled={saving}
-                        className="flex items-center justify-center flex-1 py-2 text-white rounded-lg transition-colors bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => incrementStat(worker, 'interventions', 1)}
+                        disabled={isSaving}
+                        className="flex-1 px-3 py-2 text-lg font-bold text-white rounded-lg bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4v16m8-8H4"
-                          />
-                        </svg>
+                        +
                       </button>
                     </div>
                   </div>
@@ -560,6 +1433,163 @@ export default function StreetworkClient({
             );
           })}
         </div>
+
+        {/* Avatar Edit Modal */}
+        {editingWorker && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+            onClick={closeAvatarModal}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold sm:text-xl text-slate-900">
+                  Edytuj profil: {editingWorker}
+                </h3>
+                <button
+                  onClick={closeAvatarModal}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Preview */}
+              <div className="flex justify-center mb-6">
+                <div
+                  className={`w-20 h-20 bg-gradient-to-br ${tempBgColor} rounded-full flex items-center justify-center text-4xl shadow-lg`}
+                >
+                  {tempAvatar}
+                </div>
+              </div>
+
+              {/* Avatar Selector */}
+              <div className="mb-6">
+                <label className="block mb-3 text-sm font-medium text-slate-700">
+                  Wybierz awatar ({AVATAR_OPTIONS.length} opcji)
+                </label>
+                <div className="p-2 overflow-y-auto border-2 rounded-lg max-h-64 border-slate-200">
+                  <div className="grid grid-cols-8 sm:grid-cols-10 gap-1.5">
+                    {AVATAR_OPTIONS.map((item, idx) => {
+                      const isLetter =
+                        item.length === 1 && item.match(/[A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż]/);
+                      return (
+                        <button
+                          key={`${item}-${idx}`}
+                          onClick={() => setTempAvatar(item)}
+                          className={`aspect-square p-1.5 sm:p-2 rounded-lg border-2 transition-all ${
+                            tempAvatar === item
+                              ? 'border-purple-500 bg-purple-50 scale-110 shadow-lg'
+                              : 'border-slate-200 hover:border-purple-300 hover:scale-105'
+                          } ${isLetter ? 'font-bold text-base sm:text-lg bg-gradient-to-br from-slate-100 to-slate-200' : 'text-lg sm:text-xl'}`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">Przewiń aby zobaczyć wszystkie opcje</p>
+              </div>
+
+              {/* Color Selector */}
+              <div className="mb-6">
+                <label className="block mb-3 text-sm font-medium text-slate-700">
+                  Wybierz kolor tła ({COLOR_OPTIONS.length} opcji)
+                </label>
+                <div className="p-2 overflow-y-auto border-2 rounded-lg max-h-96 border-slate-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {COLOR_OPTIONS.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setTempBgColor(color.value)}
+                        className={`p-2 rounded-lg border-2 transition-all ${
+                          tempBgColor === color.value
+                            ? 'border-purple-500 ring-2 ring-purple-200 scale-105'
+                            : 'border-slate-200 hover:border-purple-300'
+                        }`}
+                      >
+                        <div
+                          className={`h-12 sm:h-16 rounded bg-gradient-to-r ${color.value} mb-1.5 shadow-md`}
+                        ></div>
+                        <div className="text-[10px] sm:text-xs text-slate-700 font-medium text-center leading-tight">
+                          {color.name}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">Przewiń aby zobaczyć wszystkie kolory</p>
+              </div>
+              {/* Save Button */}
+              <div className="flex gap-2">
+                <button
+                  onClick={closeAvatarModal}
+                  className="flex-1 px-4 py-3 font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                >
+                  Anuluj
+                </button>
+                <button
+                  onClick={saveAvatar}
+                  disabled={isSaving}
+                  className="flex items-center justify-center flex-1 px-4 py-3 font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <svg
+                        className="w-4 h-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Zapisywanie...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Zapisz
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
