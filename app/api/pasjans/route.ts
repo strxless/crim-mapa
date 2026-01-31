@@ -9,7 +9,7 @@ export async function GET() {
     description: 'A cute solitaire game with kawaii aesthetics!',
     emoji: '💖🎀✨',
   });
-
+}
 
 // You can add POST endpoints for saving game state, scores, etc.
 export async function POST(request: Request) {
@@ -22,4 +22,3 @@ export async function POST(request: Request) {
     data: body,
   });
 }
-
