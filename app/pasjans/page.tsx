@@ -710,22 +710,9 @@ export default function Pasjans() {
           box-sizing: border-box;
         }
 
-        html,
-        body {
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-          overscroll-behavior: none;
-          position: fixed;
-          width: 100%;
-          height: 100%;
-        }
-
         .game-container {
-          min-height: 100vh;
-          min-height: 100dvh;
-          height: 100vh;
-          height: 100dvh;
+          /* Fixed height accounting for navbar - uses CSS calc with dvh */
+          height: calc(100dvh - 57px); /* 57px is approximate navbar height on mobile */
           width: 100vw;
           max-width: 100vw;
           padding: 6px;
@@ -1172,9 +1159,12 @@ export default function Pasjans() {
           margin-top: 2px;
         }
 
+        /* Desktop adjustments - navbar is taller on desktop */
         @media (min-width: 640px) {
           .game-container {
             padding: 12px;
+            /* Navbar is ~61px on desktop due to larger padding */
+            height: calc(100dvh - 61px);
           }
 
           .header {
