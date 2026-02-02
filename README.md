@@ -1,57 +1,88 @@
-# Mapa Pinezek (Next.js + Leaflet + SQLite/Postgres)
-Prosta, minimalistyczna aplikacja do zarządzania pinezkami na mapie z prawie rzeczywistymi aktualizacjami.
-- Interaktywna mapa z zarządzaniem pinezkami
-- Częste odświeżanie (bez socketów) dla „prawie realtime” przy niskich kosztach
-- SQLite domyślnie lokalnie lub Postgres na Vercel
-- Operacje CRUD na pinezkach z kategoriami
-- Historia odwiedzin (bez logowania; wpisujesz swoje imię przy dodawaniu)
-- Interfejs mobilny, prosty i „slick” (mobile-first)
-- Współdzielone edycje zabezpieczone przez optymistyczną kontrolę wersji (409 przy konflikcie)
-## Stos
-- Next.js 14 (App Router)
-- React + SWR (odświeżanie co ~3 sekundy)
-- Leaflet + react-leaflet z kafelkami OpenStreetMap (darmowe)
-- SQLite (better-sqlite3) lokalnie; Postgres przez @vercel/postgres na produkcji
-## Szybki start (lokalnie)
+# CRiIM Mapa
+A mobile-first, team-friendly map for tracking locations, field visits, and operational stats — built with **Next.js (App Router)**, **Leaflet**, and a **SQLite/Postgres** dual-database backend.
 
-1) Instalacja zależności
+This project is intentionally designed as a “portfolio-grade” internal tool: it focuses on practical UX, fast iteration, and robust data handling (conflict detection, schema bootstrapping, exports, tests).
 
-   npm install
+## What it does
+- **Interactive map** (OpenStreetMap tiles) with point creation, editing and deletion
+- **Categories with colors** (server-persisted) + category filtering
+- **Visit history** per pin (quick updates + notes)
+- **Near real-time collaboration** via polling (SWR refresh) without WebSockets
+- **Conflict-safe editing** using optimistic concurrency (`expectedUpdatedAt` → HTTP **409** on conflict)
+- **Analytics dashboard** (`/stats`) with charts + exports (**Excel / DOCX**) for reporting
+- **Streetwork stats module** (`/street`) for monthly team KPIs (interactions / new contacts / interventions)
+- **Authentication flow** with session cookies + password change on first login + lockout after repeated attempts
 
-2) Uruchomienie dev
+## Tech stack
+- **Next.js 14** (App Router) + **React 18**
+- **TypeScript**
+- **Leaflet / react-leaflet**
+- **SWR** for caching + background refresh
+- **SQLite** (via `@libsql/client`, optionally Turso) for zero-config local dev
+- **Postgres** for production (works great with **Vercel Postgres**)
+- **Tailwind CSS**
+- **Vitest** (integration/unit) + **Playwright** (E2E)
 
-   npm run dev
+## Engineering highlights (CV-ready)
+- Implemented a **dual database provider** (SQLite ↔ Postgres) with **automatic schema creation** on startup (`lib/store.ts`) to keep local dev friction-free while supporting production deployments.
+- Built **optimistic concurrency control** for shared edits (client sends `expectedUpdatedAt`; API returns **409** on conflicts), preventing silent overwrites during concurrent updates.
+- Designed a **near real-time UX** without sockets: SWR polling every ~3s balances freshness, simplicity, and operational cost.
+- Added a reporting pipeline: **JSON export API** + **DOCX/XLSX generation** for stakeholders who need offline, shareable artifacts.
+- Backed the core flows with **integration tests** (API + store) and **E2E smoke tests**.
 
-Utworzy się lokalny plik SQLite ./data.sqlite, a tabele zostaną założone automatycznie.
+## Quick start (local)
+Prereqs: Node.js 18+ recommended.
 
-## Deploy na Vercel
+```bash
+npm install
+npm run dev
+```
 
-- Dodaj Vercel Postgres do projektu (z poziomu panelu Vercel), co doda zmienne POSTGRES_URL.
-- Aplikacja automatycznie wykryje Postgresa na produkcji i go użyje.
+By default, local development uses SQLite (see `.env.local`). The database file is created automatically and schema is bootstrapped on first run.
 
-Zmienne opcjonalne:
-- DB_PROVIDER=postgres wymusza Postgresa
-- SQLITE_PATH=./data.sqlite zmienia ścieżkę do SQLite lokalnie
+Open: `http://localhost:3000`
 
-## Model danych
+## Configuration
+Key environment variables:
+- `USE_SQLITE=true` — force SQLite (recommended for local + E2E)
+- `SQLITE_PATH=./data.sqlite` — change SQLite file location
+- `TURSO_DATABASE_URL=...` / `TURSO_AUTH_TOKEN=...` — optional: run SQLite in the cloud via Turso
+- `DB_PROVIDER=postgres` — force Postgres
+- `POSTGRES_URL=...` — Postgres connection string (required when using Postgres)
+- `AUTH_DB_PATH=./data/auth.db` — auth database path (when `USE_SQLITE=true`)
 
-- pins: id, title, description, lat, lng, category, created_at, updated_at, version
-- visits: id, pin_id (FK), name, note, visited_at
+Note: the auth DB is initialized automatically on first run. For a real deployment, you should provision your own users / seeding logic.
 
-Współbieżność: Klient przy aktualizacji wysyła expectedUpdatedAt. Jeśli updated_at na serwerze różni się, zwracany jest HTTP 409 (konflikt) i UI się odświeża.
+## Deployment (Vercel)
+- Attach **Vercel Postgres** to inject `POSTGRES_URL`.
+- The app auto-detects Postgres in production (or you can force it via `DB_PROVIDER=postgres`).
 
-## API
-- GET /api/pins?category=... -> lista pinezek (z visitsCount)
-- POST /api/pins -> utworzenie pinezki { title, description?, lat, lng, category }
-- GET /api/pins/:id -> { pin, visits }
-- PUT /api/pins/:id -> aktualizacja z optymistyczną kontrolą { title, description?, category, expectedUpdatedAt }
-- DELETE /api/pins/:id -> usunięcie pinezki
-- POST /api/pins/:id/visits -> dodanie odwiedzin { name, note? }
-## Uwagi
-- Częstotliwość odświeżania ustawiona na ~3 sekundy: balans między świeżością a kosztami.
-- Gdy dwie osoby edytują tę samą pinezkę, druga dostanie 409; UI pokaże alert i odświeży dane.
-## Skrypty
-- npm run dev
-- npm run build
-- npm run start
+## API overview
+- `GET /api/pins?category=...` → list pins (includes `visitsCount`)
+- `POST /api/pins` → create pin `{ title, description?, lat, lng, category, imageUrl? }`
+- `GET /api/pins/:id` → `{ pin, visits }`
+- `PUT /api/pins/:id` → update `{ title, description?, category, imageUrl?, expectedUpdatedAt }` (returns **409** on conflict)
+- `DELETE /api/pins/:id` → delete pin
+- `POST /api/pins/:id/visits` → add visit `{ name, note?, imageUrl? }`
+- `GET /api/pins/export` → export all pins + visits as JSON
+- `GET /api/categories` / `POST /api/categories` → list/create categories
+- `GET /api/streetwork` / `POST /api/streetwork` → streetwork KPI stats
 
+## Data model
+- `pins`: `id`, `title`, `description`, `lat`, `lng`, `category`, `image_url`, `created_at`, `updated_at`, `version`
+- `visits`: `id`, `pin_id` (FK), `name`, `note`, `image_url`, `visited_at`
+- `categories`: `name`, `color`
+- `streetwork_stats`: `worker_name`, `month`, `interactions`, `new_contacts`, `interventions`, `avatar`, `bg_color`
+
+## Tests
+```bash
+npm run test          # vitest (unit/integration)
+npm run e2e           # playwright
+npm run test:coverage # coverage report
+```
+
+## Roadmap (nice-to-have)
+- Replace polling with **SSE/WebSockets** for true real-time updates
+- Stronger auth + password hashing (e.g., bcrypt/argon2) + RBAC
+- Photo uploads for pins/visits (the schema supports `imageUrl` already)
+- Map clustering / heatmaps for dense areas
