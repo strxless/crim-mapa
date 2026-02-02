@@ -518,7 +518,10 @@ export default function Pasjans() {
           position: fixed;
           top: 0;
           left: 0;
-          touch-action: none;
+          /* Allow native scrolling in overflow containers (e.g. Settings modal).
+           * Dragging cards is still protected via preventDefault() in drag handlers.
+           */
+          touch-action: pan-x pan-y;
           overscroll-behavior: none;
           user-select: none;
           -webkit-user-select: none;
@@ -820,8 +823,16 @@ export default function Pasjans() {
           border-radius: 12px;
           max-width: 400px;
           width: 100%;
+          /* iOS Safari can report a larger vh than the visible area when the URL bar is shown,
+           * which makes the bottom of the modal unreachable.
+           */
           max-height: 90vh;
+          max-height: 90svh;
+          max-height: 90dvh;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
+          overscroll-behavior: contain;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
