@@ -78,7 +78,7 @@ type Visit = {
   visitedAt: string;
 };
 
-const normalizePolishName = (name: string): string => {
+export const normalizePolishName = (name: string): string => {
   return name
     .toLowerCase()
     .trim()
@@ -93,7 +93,7 @@ const normalizePolishName = (name: string): string => {
     .replace(/ż/g, 'z');
 };
 
-const extractNames = (nameField: string): string[] => {
+export const extractNames = (nameField: string): string[] => {
   if (!nameField) return [];
 
   // Remove diacritics, lowercase, trim
