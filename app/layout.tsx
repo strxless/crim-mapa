@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import './globals.css';
 import Link from 'next/link';
+import SecretLogoButton from '@/components/SecretLogoButton';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
@@ -30,12 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div className="flex flex-col min-h-dvh">
           <header className="px-4 py-3 border-b border-[var(--border)] sticky top-0 z-10 bg-[var(--bg)]/95 backdrop-blur-md">
             <div className="flex items-center justify-between max-w-5xl mx-auto">
-              <Link
-                href="/"
-                className="text-base font-semibold tracking-tight cursor-pointer sm:text-lg hover:text-blue-600 transition-colors"
-              >
-                CRiIM Mapa
-              </Link>
+              <SecretLogoButton />
               <div className="flex items-center gap-2 sm:gap-3">
                 {isAuthenticated && (
                   <>

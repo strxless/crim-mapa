@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 // ============================================================================
 // TYPES
@@ -34,6 +35,8 @@ interface HistoryEntry {
 // ============================================================================
 
 export default function Pasjans() {
+  const router = useRouter();
+  
   // State
   const [game, setGame] = useState<GameState | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -281,10 +284,6 @@ export default function Pasjans() {
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, pile: string, index: number) => {
     if (!game) return;
 
-    // Mobile-first: on touch devices use tap-to-move (click handlers).
-    // Touch-drag was starting immediately on tap and made the game feel broken.
-    if ('touches' in e) return;
-
     e.preventDefault();
     e.stopPropagation();
 
@@ -300,8 +299,8 @@ export default function Pasjans() {
     }
 
     if (cards.length > 0) {
-      const clientX = e.clientX;
-      const clientY = e.clientY;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
       setDragging({ pile, index, cards });
       setDragOffset({ x: clientX, y: clientY });
     }
@@ -441,20 +440,25 @@ export default function Pasjans() {
     <div className="solitaire-game">
       <style jsx>{`
         .solitaire-game {
-          width: 100%;
-          height: 100%;
-          max-height: 100%;
+          width: 100vw;
+          height: 100vh;
+          height: 100dvh;
+          max-height: 100vh;
+          max-height: 100dvh;
           background: linear-gradient(135deg, #0d4d2d 0%, #1a7a4a 50%, #0d4d2d 100%);
           color: white;
           padding: 4px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          position: relative;
-          touch-action: manipulation;
-          overscroll-behavior: contain;
+          position: fixed;
+          top: 0;
+          left: 0;
+          touch-action: none;
+          overscroll-behavior: none;
           user-select: none;
           -webkit-user-select: none;
+          -webkit-touch-callout: none;
         }
 
         .game-header {
@@ -470,6 +474,12 @@ export default function Pasjans() {
           font-size: 14px;
           font-weight: 700;
           margin: 0;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .game-title:active {
+          opacity: 0.7;
         }
 
         .game-controls {
@@ -545,6 +555,7 @@ export default function Pasjans() {
           position: relative;
           min-width: 0;
           cursor: pointer;
+          max-height: 65px;
         }
 
         .tableau-pile.pile {
@@ -604,12 +615,12 @@ export default function Pasjans() {
         }
 
         .card-suit {
-          font-size: 12px;
+          font-size: 10px;
           line-height: 1;
         }
 
         .card-rank {
-          font-size: 9px;
+          font-size: 8px;
           line-height: 1;
         }
 
@@ -663,14 +674,14 @@ export default function Pasjans() {
 
         .drag-preview-inner {
           position: relative;
-          width: 45px;
+          width: 50px;
           transform: translate(-50%, -50%);
         }
 
         .drag-preview .card {
-          width: 45px;
+          width: 50px;
           aspect-ratio: 2.5/3.5;
-          margin-bottom: 10px;
+          margin-bottom: 12px;
         }
 
         .win-overlay {
@@ -799,7 +810,7 @@ export default function Pasjans() {
 
       {/* Header */}
       <div className="game-header">
-        <h1 className="game-title">🎴 Pasjans</h1>
+        <h1 className="game-title" onClick={() => router.push('/')}>← 🎴 Pasjans</h1>
         <div className="game-controls">
           <button className="game-btn" onClick={undo} disabled={history.length === 0}>
             ↶
