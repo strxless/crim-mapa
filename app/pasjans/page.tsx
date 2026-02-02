@@ -30,6 +30,24 @@ interface HistoryEntry {
   move: string;
 }
 
+interface CardTheme {
+  backPattern: 'stripes' | 'dots' | 'grid' | 'solid' | 'checkerboard' | 'waves';
+  backColor: string;
+  faceColor: string;
+  redColor: string;
+  blackColor: string;
+  borderColor: string;
+}
+
+const DEFAULT_THEME: CardTheme = {
+  backPattern: 'stripes',
+  backColor: '#dc2626',
+  faceColor: '#ffffff',
+  redColor: '#dc2626',
+  blackColor: '#1f2937',
+  borderColor: '#e5e7eb',
+};
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -48,6 +66,8 @@ export default function Pasjans() {
   const [moves, setMoves] = useState(0);
   const [time, setTime] = useState(0);
   const [won, setWon] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState<CardTheme>(DEFAULT_THEME);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -398,10 +418,24 @@ export default function Pasjans() {
 
   useEffect(() => {
     initializeGame();
+    // Load theme from localStorage
+    const savedTheme = localStorage.getItem('pasjans-theme');
+    if (savedTheme) {
+      try {
+        setTheme(JSON.parse(savedTheme));
+      } catch (e) {
+        console.error('Failed to load theme:', e);
+      }
+    }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [initializeGame]);
+
+  // Save theme to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('pasjans-theme', JSON.stringify(theme));
+  }, [theme]);
 
   useEffect(() => {
     if (game && game.foundation.every((pile) => pile.length === 13)) {
@@ -428,6 +462,36 @@ export default function Pasjans() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getCardBackPattern = (): string => {
+    const color1 = theme.backColor;
+    const color2 = adjustColor(theme.backColor, -20);
+    const color3 = adjustColor(theme.backColor, 20);
+    
+    switch (theme.backPattern) {
+      case 'stripes':
+        return `repeating-linear-gradient(45deg, ${color1}, ${color1} 10px, ${color2} 10px, ${color2} 20px)`;
+      case 'dots':
+        return `radial-gradient(circle, ${color2} 15%, transparent 15%), radial-gradient(circle, ${color2} 15%, transparent 15%), ${color1}`;
+      case 'grid':
+        return `repeating-linear-gradient(0deg, ${color2} 0px, ${color2} 1px, transparent 1px, transparent 10px), repeating-linear-gradient(90deg, ${color2} 0px, ${color2} 1px, transparent 1px, transparent 10px), ${color1}`;
+      case 'checkerboard':
+        return `repeating-conic-gradient(${color1} 0% 25%, ${color2} 0% 50%) 50% / 20px 20px`;
+      case 'waves':
+        return `linear-gradient(135deg, ${color1} 25%, transparent 25%), linear-gradient(225deg, ${color1} 25%, transparent 25%), linear-gradient(45deg, ${color1} 25%, transparent 25%), linear-gradient(315deg, ${color1} 25%, ${color2} 25%)`;
+      case 'solid':
+        return color1;
+    }
+  };
+
+  const adjustColor = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return `#${(0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
   };
 
   if (!game) return null;
@@ -571,9 +635,9 @@ export default function Pasjans() {
         .card {
           width: 100%;
           height: 100%;
-          background: white;
+          background: ${theme.faceColor};
           border-radius: 4px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid ${theme.borderColor};
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -596,21 +660,17 @@ export default function Pasjans() {
         }
 
         .card.red {
-          color: #dc2626;
+          color: ${theme.redColor};
         }
 
         .card.black {
-          color: #1f2937;
+          color: ${theme.blackColor};
         }
 
         .card-back {
-          background: repeating-linear-gradient(
-            45deg,
-            #dc2626,
-            #dc2626 10px,
-            #b91c1c 10px,
-            #b91c1c 20px
-          );
+          background: ${getCardBackPattern()};
+          ${theme.backPattern === 'dots' ? 'background-size: 20px 20px; background-position: 0 0, 10px 10px;' : ''}
+          ${theme.backPattern === 'waves' ? 'background-size: 20px 20px;' : ''}
           color: white;
         }
 
@@ -739,6 +799,183 @@ export default function Pasjans() {
           margin-top: 2px;
         }
 
+        .settings-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10001;
+          padding: 20px;
+        }
+
+        .settings-content {
+          background: white;
+          color: #1f2937;
+          padding: 16px;
+          border-radius: 12px;
+          max-width: 400px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (min-width: 640px) {
+          .settings-content {
+            padding: 20px;
+          }
+        }
+
+        .settings-title {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0 0 14px 0;
+          text-align: center;
+          color: #000000;
+        }
+
+        @media (min-width: 640px) {
+          .settings-title {
+            font-size: 20px;
+            margin: 0 0 16px 0;
+          }
+        }
+
+        .settings-section {
+          margin-bottom: 12px;
+        }
+
+        @media (min-width: 640px) {
+          .settings-section {
+            margin-bottom: 16px;
+          }
+        }
+
+        .settings-label {
+          font-size: 11px;
+          font-weight: 600;
+          margin-bottom: 6px;
+          display: block;
+          text-transform: uppercase;
+          color: #000000;
+        }
+
+        @media (min-width: 640px) {
+          .settings-label {
+            font-size: 12px;
+          }
+        }
+
+        .color-input-wrapper {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .color-input {
+          flex: 1;
+          height: 40px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+
+        .color-value {
+          font-size: 10px;
+          color: #000000;
+          font-family: monospace;
+          font-weight: 500;
+        }
+
+        @media (min-width: 640px) {
+          .color-value {
+            font-size: 11px;
+          }
+        }
+
+        .pattern-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 6px;
+        }
+
+        @media (min-width: 640px) {
+          .pattern-grid {
+            gap: 8px;
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        .pattern-btn {
+          padding: 24px 8px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          background: white;
+          cursor: pointer;
+          font-size: 10px;
+          font-weight: 600;
+          transition: all 0.2s;
+          text-align: center;
+          color: #000000;
+        }
+
+        @media (min-width: 640px) {
+          .pattern-btn {
+            padding: 32px 12px;
+            font-size: 11px;
+          }
+        }
+
+        .pattern-btn:hover {
+          border-color: #3b82f6;
+        }
+
+        .pattern-btn.active {
+          border-color: #3b82f6;
+          background: #eff6ff;
+          color: #3b82f6;
+        }
+
+        .settings-buttons {
+          display: flex;
+          gap: 8px;
+          margin-top: 20px;
+        }
+
+        .settings-btn {
+          flex: 1;
+          padding: 10px;
+          border: none;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .settings-btn-primary {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .settings-btn-primary:hover {
+          background: #2563eb;
+        }
+
+        .settings-btn-secondary {
+          background: #e5e7eb;
+          color: #1f2937;
+        }
+
+        .settings-btn-secondary:hover {
+          background: #d1d5db;
+        }
+
         @media (min-width: 640px) {
           .solitaire-game {
             padding: 8px;
@@ -817,6 +1054,9 @@ export default function Pasjans() {
           </button>
           <button className="game-btn" onClick={initializeGame}>
             Nowa
+          </button>
+          <button className="game-btn" onClick={() => setShowSettings(true)}>
+            ⚙
           </button>
         </div>
       </div>
@@ -1006,6 +1246,153 @@ export default function Pasjans() {
               >
                 Zagraj ponownie
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            className="settings-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSettings(false)}
+          >
+            <motion.div
+              className="settings-content"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="settings-title">⚙️ Personalizacja kart</h2>
+
+              <div className="settings-section">
+                <label className="settings-label">Wzór rewersów</label>
+                <div className="pattern-grid">
+                  <button
+                    className={`pattern-btn ${theme.backPattern === 'stripes' ? 'active' : ''}`}
+                    onClick={() => setTheme({ ...theme, backPattern: 'stripes' })}
+                  >
+                    Paski
+                  </button>
+                  <button
+                    className={`pattern-btn ${theme.backPattern === 'dots' ? 'active' : ''}`}
+                    onClick={() => setTheme({ ...theme, backPattern: 'dots' })}
+                  >
+                    Kropki
+                  </button>
+                  <button
+                    className={`pattern-btn ${theme.backPattern === 'grid' ? 'active' : ''}`}
+                    onClick={() => setTheme({ ...theme, backPattern: 'grid' })}
+                  >
+                    Siatka
+                  </button>
+                  <button
+                    className={`pattern-btn ${theme.backPattern === 'checkerboard' ? 'active' : ''}`}
+                    onClick={() => setTheme({ ...theme, backPattern: 'checkerboard' })}
+                  >
+                    Szachownica
+                  </button>
+                  <button
+                    className={`pattern-btn ${theme.backPattern === 'waves' ? 'active' : ''}`}
+                    onClick={() => setTheme({ ...theme, backPattern: 'waves' })}
+                  >
+                    Fale
+                  </button>
+                  <button
+                    className={`pattern-btn ${theme.backPattern === 'solid' ? 'active' : ''}`}
+                    onClick={() => setTheme({ ...theme, backPattern: 'solid' })}
+                  >
+                    Jednolity
+                  </button>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <label className="settings-label">Kolor rewersu</label>
+                <div className="color-input-wrapper">
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={theme.backColor}
+                    onChange={(e) => setTheme({ ...theme, backColor: e.target.value })}
+                  />
+                  <span className="color-value">{theme.backColor}</span>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <label className="settings-label">Kolor tła karty</label>
+                <div className="color-input-wrapper">
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={theme.faceColor}
+                    onChange={(e) => setTheme({ ...theme, faceColor: e.target.value })}
+                  />
+                  <span className="color-value">{theme.faceColor}</span>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <label className="settings-label">Kolor czerwonych kart</label>
+                <div className="color-input-wrapper">
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={theme.redColor}
+                    onChange={(e) => setTheme({ ...theme, redColor: e.target.value })}
+                  />
+                  <span className="color-value">{theme.redColor}</span>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <label className="settings-label">Kolor czarnych kart</label>
+                <div className="color-input-wrapper">
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={theme.blackColor}
+                    onChange={(e) => setTheme({ ...theme, blackColor: e.target.value })}
+                  />
+                  <span className="color-value">{theme.blackColor}</span>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <label className="settings-label">Kolor obramowania</label>
+                <div className="color-input-wrapper">
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={theme.borderColor}
+                    onChange={(e) => setTheme({ ...theme, borderColor: e.target.value })}
+                  />
+                  <span className="color-value">{theme.borderColor}</span>
+                </div>
+              </div>
+
+              <div className="settings-buttons">
+                <button
+                  className="settings-btn settings-btn-secondary"
+                  onClick={() => {
+                    setTheme(DEFAULT_THEME);
+                  }}
+                >
+                  Przywróć domyślne
+                </button>
+                <button
+                  className="settings-btn settings-btn-primary"
+                  onClick={() => setShowSettings(false)}
+                >
+                  Gotowe
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
