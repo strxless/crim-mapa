@@ -626,6 +626,7 @@ export type StreetworkStat = {
 
 async function ensureStreetworkSchema() {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     await sql`CREATE TABLE IF NOT EXISTS streetwork_stats (
       id SERIAL PRIMARY KEY,
       worker_name TEXT NOT NULL,

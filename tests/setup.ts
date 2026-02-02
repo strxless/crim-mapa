@@ -5,10 +5,8 @@ import '@testing-library/jest-dom/vitest';
 if (!globalThis.TextEncoder) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { TextEncoder, TextDecoder } = require('node:util');
-  // @ts-expect-error - assigning to global
-  globalThis.TextEncoder = TextEncoder;
-  // @ts-expect-error - assigning to global
-  globalThis.TextDecoder = TextDecoder;
+  (globalThis as any).TextEncoder = TextEncoder;
+  (globalThis as any).TextDecoder = TextDecoder;
 }
 
 // Basic matchMedia mock (useful for components that check color scheme)
