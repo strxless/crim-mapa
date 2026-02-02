@@ -31,7 +31,8 @@ let sqliteDb: Database.Database | null = null;
 
 function getSQLiteDB() {
   if (!sqliteDb) {
-    sqliteDb = new Database('./data/auth.db');
+    const dbPath = process.env.AUTH_DB_PATH || './data/auth.db';
+    sqliteDb = new Database(dbPath);
   }
   return sqliteDb;
 }
@@ -65,6 +66,32 @@ function getDB() {
   });
 }
 
+function parseEnvBoolean(value: string | undefined, defaultValue: boolean) {
+  if (value === undefined) return defaultValue;
+  return ['1', 'true', 'yes', 'y', 'on'].includes(value.toLowerCase());
+}
+
+function getSeedUsers(): string[] {
+  const raw = process.env.AUTH_SEED_USERS;
+  if (!raw) return ['demo@example.com'];
+
+  const users = raw
+    .split(/[,;\n]+/g)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  return users.length > 0 ? users : ['demo@example.com'];
+}
+
+function getSeedPassword(): string {
+  return process.env.AUTH_SEED_PASSWORD || 'changeme';
+}
+
+function getSeedMustChangePassword(): boolean {
+  // Preserve previous behavior by default (seeded accounts require password change)
+  return parseEnvBoolean(process.env.AUTH_SEED_MUST_CHANGE_PASSWORD, true);
+}
+
 export async function initDatabase() {
   if (USE_SQLITE) {
     const db = getSQLiteDB();
@@ -81,21 +108,15 @@ export async function initDatabase() {
     const count = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
 
     if (count.count === 0) {
-      const defaultPassword = hashPassword('mopsgdynia');
-      const users = [
-        'd.zablocki@mopsgdynia.pl',
-        'j.nowicka@mopsgdynia.pl',
-        'l.filc@mopsgdynia.pl',
-        'm.walenciej@mopsgdynia.pl',
-        'p.niemczyk@mopsgdynia.pl',
-        'm.kowalewski@mopsgdynia.pl',
-      ];
+      const defaultPassword = hashPassword(getSeedPassword());
+      const mustChange = getSeedMustChangePassword() ? 1 : 0;
+      const users = getSeedUsers();
 
       const insert = db.prepare(
-        'INSERT INTO users (email, password_hash, must_change_password) VALUES (?, ?, 1)'
+        'INSERT INTO users (email, password_hash, must_change_password) VALUES (?, ?, ?)'
       );
       for (const email of users) {
-        insert.run(email, defaultPassword);
+        insert.run(email, defaultPassword, mustChange);
       }
     }
   } else {
@@ -114,19 +135,12 @@ export async function initDatabase() {
     const count = Number(result[0].count);
 
     if (count === 0) {
-      const defaultPassword = hashPassword('mopsgdynia');
-      const users = [
-        'd.zablocki@mopsgdynia.pl',
-        'j.nowicka@mopsgdynia.pl',
-        'm.adamski@mopsgdynia.pl',
-        'l.filc@mopsgdynia.pl',
-        'm.walenciej@mopsgdynia.pl',
-        'p.niemczyk@mopsgdynia.pl',
-        'm.kowalewski@mopsgdynia.pl',
-      ];
+      const defaultPassword = hashPassword(getSeedPassword());
+      const mustChange = getSeedMustChangePassword();
+      const users = getSeedUsers();
 
       for (const email of users) {
-        await sql`INSERT INTO users (email, password_hash, must_change_password) VALUES (${email}, ${defaultPassword}, true)`;
+        await sql`INSERT INTO users (email, password_hash, must_change_password) VALUES (${email}, ${defaultPassword}, ${mustChange})`;
       }
     }
 
