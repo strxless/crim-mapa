@@ -1,23 +1,31 @@
 import postgres from 'postgres';
 
-console.log('Database provider check:', {
-  USE_SQLITE: process.env.USE_SQLITE,
-  HAS_POSTGRES_URL: !!process.env.POSTGRES_URL,
-  WILL_USE: process.env.USE_SQLITE === 'true' ? 'SQLite' : 'PostgreSQL',
-});
+type PostgresClient = ReturnType<typeof postgres>;
 
-const sql = postgres(process.env.POSTGRES_URL!, {
-  max: 1,
-  idle_timeout: 20,
-  connect_timeout: 10,
-  onnotice: () => {},
-});
+let _pg: PostgresClient | null = null;
+
+function getPostgres() {
+  if (_pg) return _pg;
+  const url = process.env.POSTGRES_URL;
+  if (!url) {
+    throw new Error('POSTGRES_URL is not set (required when using Postgres)');
+  }
+  _pg = postgres(url, {
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    onnotice: () => {},
+  });
+  return _pg;
+}
 
 // - If process.env.DB_PROVIDER === 'postgres' or Vercel Postgres env vars exist -> use Postgres
 // - Otherwise, use SQLite at SQLITE_PATH (default ./data.sqlite)
 //
 export async function getAllPinsWithVisits(): Promise<Array<DBPin & { visits: DBVisit[] }>> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
+
     // Single query for all pins
     const pinsResult = await sql`SELECT * FROM pins ORDER BY updated_at DESC`;
 
@@ -121,10 +129,15 @@ export type DBVisit = {
 };
 
 function isPostgresSelected() {
+  // Explicit opt-out for local/dev/test usage
+  if (process.env.USE_SQLITE === 'true') return false;
+
   if (process.env.DB_PROVIDER === 'postgres') return true;
+
   // Vercel automatically injects these if a Postgres db is attached
   const hasVercelPg = !!(process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
   if (hasVercelPg) return true;
+
   return false;
 }
 
@@ -132,6 +145,7 @@ let initOnce: Promise<void> | null = null;
 let schemaInitialized = false;
 
 async function ensurePgSchema() {
+  const sql = getPostgres();
   await sql`CREATE TABLE IF NOT EXISTS pins (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -226,6 +240,7 @@ export async function ensureSchema() {
 // Query helpers abstracted
 export async function listPins(category?: string): Promise<DBPin[]> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const rows = category
       ? await sql`
           SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
@@ -302,6 +317,7 @@ export async function createPin(input: {
 }): Promise<DBPin> {
   const { title, description, lat, lng, category, imageUrl } = input;
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const rows = await sql`
       INSERT INTO pins (title, description, lat, lng, category, image_url)
       VALUES (${title}, ${description ?? null}, ${lat}, ${lng}, ${category}, ${imageUrl ?? null})
@@ -349,6 +365,7 @@ export async function getPinWithVisits(
   id: number
 ): Promise<{ pin: DBPin; visits: DBVisit[] } | null> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const pinRes = await sql`SELECT * FROM pins WHERE id = ${id}`;
     if (pinRes.length === 0) return null;
     const p: any = pinRes[0];
@@ -428,6 +445,7 @@ export async function updatePin(
 ): Promise<DBPin | { conflict: true; serverUpdatedAt: string }> {
   const { title, description, category, imageUrl, expectedUpdatedAt } = input;
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const current = await sql`SELECT updated_at FROM pins WHERE id = ${id}`;
     if (current.length === 0) throw new Error('Not found');
     const serverUpdatedAt =
@@ -493,6 +511,7 @@ export async function updatePin(
 
 export async function deletePin(id: number): Promise<void> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     await sql`DELETE FROM pins WHERE id = ${id}`;
   } else {
     const { getSqlite } = await import('./sqlite');
@@ -508,6 +527,7 @@ export type Category = { name: string; color: string };
 
 export async function listCategories(): Promise<Category[]> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const rows = await sql`SELECT name, color FROM categories ORDER BY name ASC`;
     return rows.map((r: any) => ({ name: r.name as string, color: r.color as string }));
   } else {
@@ -523,6 +543,7 @@ export async function listCategories(): Promise<Category[]> {
 
 export async function createCategory(name: string, color: string): Promise<Category> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     await sql`INSERT INTO categories(name, color) VALUES (${name}, ${color}) ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color`;
     return { name, color };
   } else {
@@ -542,6 +563,7 @@ export async function addVisit(
 ): Promise<DBVisit> {
   const { name, note, imageUrl } = input;
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const exists = await sql`SELECT id FROM pins WHERE id = ${pinId}`;
     if (exists.length === 0) throw new Error('Not found');
     const res =
@@ -654,6 +676,7 @@ export async function ensureStreetworkStats() {
 
 export async function getStreetworkStats(month?: string): Promise<StreetworkStat[]> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const rows = month
       ? await sql`SELECT * FROM streetwork_stats WHERE month = ${month} ORDER BY worker_name ASC`
       : await sql`SELECT * FROM streetwork_stats ORDER BY month DESC, worker_name ASC`;
@@ -707,6 +730,7 @@ export async function upsertStreetworkStat(input: {
   const { workerName, month, interactions, newContacts, interventions, avatar, bgColor } = input;
 
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const res = await sql`
       INSERT INTO streetwork_stats (worker_name, month, interactions, new_contacts, interventions, avatar, bg_color)
       VALUES (${workerName}, ${month}, ${interactions}, ${newContacts}, ${interventions}, ${avatar ?? null}, ${bgColor ?? null})
@@ -785,6 +809,7 @@ export async function upsertStreetworkStat(input: {
 
 export async function getAllStreetworkMonths(): Promise<string[]> {
   if (isPostgresSelected()) {
+    const sql = getPostgres();
     const rows = await sql`SELECT DISTINCT month FROM streetwork_stats ORDER BY month DESC`;
     return rows.map((r: any) => r.month);
   } else {
