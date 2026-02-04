@@ -15,37 +15,55 @@ export async function GET() {
   try {
     const pins = await listPins();
 
-    // Get all visits
-    let allVisits: Array<{ pinId: number; visitedAt: string }> = [];
+    // Use database aggregation for better performance with millions of visits
+    let dailyVisits: Map<string, number> = new Map();
+    let totalUpdates = 0;
 
     if (isPostgresSelected()) {
       const postgres = (await import('postgres')).default;
       const sql = postgres(process.env.POSTGRES_URL!, {
-        max: 1,
+        max: 20,
         idle_timeout: 20,
         connect_timeout: 10,
       });
 
-      const visitsResult = await sql`SELECT pin_id, visited_at FROM visits ORDER BY visited_at ASC`;
-      allVisits = visitsResult.map((v: any) => ({
-        pinId: Number(v.pin_id),
-        visitedAt: new Date(v.visited_at).toISOString()
-      }));
+      // Aggregate visits by date directly in database - much faster!
+      const visitsAgg = await sql`
+        SELECT DATE(visited_at) as visit_date, COUNT(*) as count
+        FROM visits
+        GROUP BY DATE(visited_at)
+        ORDER BY visit_date ASC
+      `;
+      
+      visitsAgg.forEach((v: any) => {
+        const date = new Date(v.visit_date).toISOString().split('T')[0];
+        dailyVisits.set(date, Number(v.count));
+      });
+      
+      // Get total count efficiently
+      const countResult = await sql`SELECT COUNT(*) as total FROM visits`;
+      totalUpdates = Number(countResult[0].total);
 
       await sql.end();
     } else {
       const { getSqlite } = await import("@/lib/sqlite");
       const db = await getSqlite();
-      const result = await db.execute(`SELECT pin_id, visited_at FROM visits ORDER BY datetime(visited_at) ASC`);
-      allVisits = result.rows.map((v: any) => ({
-        pinId: Number(v.pin_id),
-        visitedAt: String(v.visited_at)
-      }));
+      
+      const visitsAgg = await db.execute(`
+        SELECT DATE(visited_at) as visit_date, COUNT(*) as count
+        FROM visits
+        GROUP BY DATE(visited_at)
+        ORDER BY visit_date ASC
+      `);
+      
+      visitsAgg.rows.forEach((v: any) => {
+        dailyVisits.set(String(v.visit_date), Number(v.count));
+      });
+      
+      const countResult = await db.execute(`SELECT COUNT(*) as total FROM visits`);
+      totalUpdates = Number(countResult.rows[0].total);
     }
 
-    console.log('Using:', isPostgresSelected() ? 'Postgres' : 'SQLite');
-    console.log('Total visits found:', allVisits.length);
-    console.log('Sample visits:', allVisits.slice(0, 3));
 
     // Group pins by date
     const dailyStats = new Map<string, {
@@ -56,7 +74,6 @@ export async function GET() {
     }>();
 
     const categoryCount: Record<string, number> = {};
-    let totalUpdates = allVisits.length;
 
     // Sort pins by creation date
     const sortedPins = [...pins].sort((a, b) =>
@@ -78,17 +95,13 @@ export async function GET() {
       dayData.categories[pin.category] = (dayData.categories[pin.category] || 0) + 1;
     }
 
-    // Process visits
-    for (const visit of allVisits) {
-      const date = new Date(visit.visitedAt).toISOString().split('T')[0];
-
+    // Merge visit counts with daily stats
+    dailyVisits.forEach((count, date) => {
       if (!dailyStats.has(date)) {
         dailyStats.set(date, { count: 0, cumulative: 0, categories: {}, updates: 0 });
       }
-
-      const dayData = dailyStats.get(date)!;
-      dayData.updates++;
-    }
+      dailyStats.get(date)!.updates = count;
+    });
 
     // Calculate cumulative counts
     let cumulative = 0;

@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import { getCached, setCached, invalidateCachePrefix } from './cache';
 
 type PostgresClient = ReturnType<typeof postgres>;
 
@@ -11,9 +12,10 @@ function getPostgres() {
     throw new Error('POSTGRES_URL is not set (required when using Postgres)');
   }
   _pg = postgres(url, {
-    max: 1,
+    max: 20,  // Increased from 1 to 20 for concurrent requests
     idle_timeout: 20,
     connect_timeout: 10,
+    max_lifetime: 60 * 30,  // 30 minutes
     onnotice: () => {},
   });
   return _pg;
@@ -156,9 +158,12 @@ async function ensurePgSchema() {
     image_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    version INTEGER NOT NULL DEFAULT 1
+    version INTEGER NOT NULL DEFAULT 1,
+    visits_count INTEGER NOT NULL DEFAULT 0
   );`;
   await sql`ALTER TABLE pins ADD COLUMN IF NOT EXISTS image_url TEXT;`;
+  await sql`ALTER TABLE pins ADD COLUMN IF NOT EXISTS visits_count INTEGER DEFAULT 0;`;
+  
   await sql`CREATE TABLE IF NOT EXISTS visits (
     id SERIAL PRIMARY KEY,
     pin_id INTEGER NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
@@ -172,6 +177,54 @@ async function ensurePgSchema() {
   await sql`CREATE INDEX IF NOT EXISTS idx_visits_visited_at ON visits(visited_at);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_pins_category ON pins(category);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_pins_updated_at ON pins(updated_at DESC);`;
+  
+  // Create trigger function to update visits_count
+  await sql`
+    CREATE OR REPLACE FUNCTION update_pin_visits_count()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      IF TG_OP = 'INSERT' THEN
+        UPDATE pins SET visits_count = visits_count + 1 WHERE id = NEW.pin_id;
+        RETURN NEW;
+      ELSIF TG_OP = 'DELETE' THEN
+        UPDATE pins SET visits_count = GREATEST(0, visits_count - 1) WHERE id = OLD.pin_id;
+        RETURN OLD;
+      END IF;
+      RETURN NULL;
+    END;
+    $$ LANGUAGE plpgsql;
+  `;
+  
+  // Create triggers
+  await sql`
+    DROP TRIGGER IF EXISTS update_visits_count_insert ON visits;
+  `;
+  await sql`
+    CREATE TRIGGER update_visits_count_insert
+    AFTER INSERT ON visits
+    FOR EACH ROW
+    EXECUTE FUNCTION update_pin_visits_count();
+  `;
+  
+  await sql`
+    DROP TRIGGER IF EXISTS update_visits_count_delete ON visits;
+  `;
+  await sql`
+    CREATE TRIGGER update_visits_count_delete
+    AFTER DELETE ON visits
+    FOR EACH ROW
+    EXECUTE FUNCTION update_pin_visits_count();
+  `;
+  
+  // Backfill visits_count for existing data
+  await sql`
+    UPDATE pins p
+    SET visits_count = (
+      SELECT COUNT(*) FROM visits v WHERE v.pin_id = p.id
+    )
+    WHERE visits_count = 0 OR visits_count IS NULL;
+  `;
+  
   await sql`CREATE TABLE IF NOT EXISTS categories (
     name TEXT PRIMARY KEY,
     color TEXT NOT NULL
@@ -194,7 +247,8 @@ async function ensureSqliteSchema() {
       image_url TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      version INTEGER NOT NULL DEFAULT 1
+      version INTEGER NOT NULL DEFAULT 1,
+      visits_count INTEGER NOT NULL DEFAULT 0
     )`,
       `CREATE TABLE IF NOT EXISTS visits (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -223,6 +277,41 @@ async function ensureSqliteSchema() {
   try {
     await db.execute(`ALTER TABLE visits ADD COLUMN image_url TEXT`);
   } catch {}
+  try {
+    await db.execute(`ALTER TABLE pins ADD COLUMN visits_count INTEGER DEFAULT 0`);
+  } catch {}
+  
+  // Create triggers for SQLite
+  try {
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS update_visits_count_insert
+      AFTER INSERT ON visits
+      BEGIN
+        UPDATE pins SET visits_count = visits_count + 1 WHERE id = NEW.pin_id;
+      END;
+    `);
+  } catch {}
+  
+  try {
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS update_visits_count_delete
+      AFTER DELETE ON visits
+      BEGIN
+        UPDATE pins SET visits_count = MAX(0, visits_count - 1) WHERE id = OLD.pin_id;
+      END;
+    `);
+  } catch {}
+  
+  // Backfill visits_count for existing data
+  try {
+    await db.execute(`
+      UPDATE pins
+      SET visits_count = (
+        SELECT COUNT(*) FROM visits WHERE visits.pin_id = pins.id
+      )
+      WHERE visits_count = 0 OR visits_count IS NULL;
+    `);
+  } catch {}
 }
 
 export async function ensureSchema() {
@@ -245,35 +334,27 @@ export async function ensureSchema() {
 
 // Query helpers abstracted
 export async function listPins(category?: string): Promise<DBPin[]> {
+  const cacheKey = `pins:list:${category || 'all'}`;
+  const cached = getCached<DBPin[]>(cacheKey, 5000); // 5 second cache
+  if (cached) return cached;
+  
   if (isPostgresSelected()) {
     const sql = getPostgres();
     const rows = category
       ? await sql`
-          SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
-                 p.created_at, p.updated_at, p.version,
-                 COALESCE(vc.cnt, 0)::int AS visits_count
-          FROM pins p
-          LEFT JOIN (
-            SELECT pin_id, COUNT(*)::int AS cnt
-            FROM visits
-            GROUP BY pin_id
-          ) vc ON vc.pin_id = p.id
-          WHERE p.category = ${category}
-          ORDER BY p.updated_at DESC, p.id DESC
+          SELECT id, title, description, lat, lng, category, image_url,
+                 created_at, updated_at, version, COALESCE(visits_count, 0) AS visits_count
+          FROM pins
+          WHERE category = ${category}
+          ORDER BY updated_at DESC, id DESC
         `
       : await sql`
-          SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
-                 p.created_at, p.updated_at, p.version,
-                 COALESCE(vc.cnt, 0)::int AS visits_count
-          FROM pins p
-          LEFT JOIN (
-            SELECT pin_id, COUNT(*)::int AS cnt
-            FROM visits
-            GROUP BY pin_id
-          ) vc ON vc.pin_id = p.id
-          ORDER BY p.updated_at DESC, p.id DESC
+          SELECT id, title, description, lat, lng, category, image_url,
+                 created_at, updated_at, version, COALESCE(visits_count, 0) AS visits_count
+          FROM pins
+          ORDER BY updated_at DESC, id DESC
         `;
-    return rows.map((r: any) => ({
+    const result = rows.map((r: any) => ({
       id: Number(r.id),
       title: r.title,
       description: r.description ?? null,
@@ -286,18 +367,20 @@ export async function listPins(category?: string): Promise<DBPin[]> {
       version: Number(r.version),
       visitsCount: Number(r.visits_count ?? 0),
     }));
+    setCached(cacheKey, result);
+    return result;
   } else {
     const { getSqlite } = await import('./sqlite');
     const db = await getSqlite();
     const result = await db.execute({
-      sql: `SELECT p.id, p.title, p.description, p.lat, p.lng, p.category, p.image_url, p.created_at, p.updated_at, p.version,
-              (SELECT COUNT(1) FROM visits v WHERE v.pin_id = p.id) AS visits_count
-       FROM pins p
-       ${category ? 'WHERE p.category = ?' : ''}
-       ORDER BY datetime(p.updated_at) DESC, p.id DESC`,
+      sql: `SELECT id, title, description, lat, lng, category, image_url, created_at, updated_at, version,
+              COALESCE(visits_count, 0) AS visits_count
+       FROM pins
+       ${category ? 'WHERE category = ?' : ''}
+       ORDER BY datetime(updated_at) DESC, id DESC`,
       args: category ? [category] : [],
     });
-    return result.rows.map((r: any) => ({
+    const data = result.rows.map((r: any) => ({
       id: Number(r.id),
       title: String(r.title),
       description: r.description ? String(r.description) : null,
@@ -310,6 +393,8 @@ export async function listPins(category?: string): Promise<DBPin[]> {
       version: Number(r.version),
       visitsCount: Number(r.visits_count ?? 0),
     }));
+    setCached(cacheKey, data);
+    return data;
   }
 }
 
@@ -322,6 +407,10 @@ export async function createPin(input: {
   imageUrl?: string | null;
 }): Promise<DBPin> {
   const { title, description, lat, lng, category, imageUrl } = input;
+  
+  // Invalidate cache
+  invalidateCachePrefix('pins:');
+  
   if (isPostgresSelected()) {
     const sql = getPostgres();
     const rows = await sql`
@@ -568,6 +657,10 @@ export async function addVisit(
   input: { name: string; note?: string | null; imageUrl?: string | null }
 ): Promise<DBVisit> {
   const { name, note, imageUrl } = input;
+  
+  // Invalidate cache
+  invalidateCachePrefix('pins:');
+  
   if (isPostgresSelected()) {
     const sql = getPostgres();
     const exists = await sql`SELECT id FROM pins WHERE id = ${pinId}`;
