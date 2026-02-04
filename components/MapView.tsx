@@ -450,7 +450,7 @@ export default function MapView() {
                         <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Dodaj aktualizację</div>
                         <div className="space-y-2">
                           <div className="grid grid-cols-2 gap-2">
-                            {['Dawid', 'Julia', 'Maksymilian', 'Łukasz'].map(name => (
+                            {['Dawid', 'Julia', 'Mateusz', 'Łukasz'].map(name => (
                               <button
                                 key={name}
                                 type="button"

@@ -10,10 +10,10 @@ describe('normalizePolishName', () => {
 
 describe('extractNames', () => {
   it('extracts unique canonical names from comma-separated list', () => {
-    expect(extractNames('Dawid, Julia, Maksymilian, Łukasz')).toEqual([
+    expect(extractNames('Dawid, Julia, Mateusz, Łukasz')).toEqual([
       'Dawid',
       'Julia',
-      'Maksymilian',
+      'Mateusz',
       'Łukasz',
     ]);
   });
@@ -23,7 +23,7 @@ describe('extractNames', () => {
     expect(extractNames('david +  dawyt oraz julja; Maks')).toEqual([
       'Dawid',
       'Julia',
-      'Maksymilian',
+      'Mateusz',
     ]);
   });
 

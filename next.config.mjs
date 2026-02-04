@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // The repo currently contains a lot of lint violations (e.g. explicit any) that
-  // are unrelated to the Pasjans page. Don't block production builds on ESLint.
+  // The repo currently contains a lot of lint violations (e.g. explicit any).
+  // Don't block production builds on ESLint.
   eslint: {
     ignoreDuringBuilds: true,
   },

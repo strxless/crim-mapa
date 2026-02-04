@@ -111,8 +111,8 @@ export const extractNames = (nameField: string): string[] => {
       match: (n) => n === 'lukasz',
     },
     {
-      name: 'Maksymilian',
-      match: (n) => n.startsWith('maks'),
+      name: 'Mateusz',
+      match: (n) => n.startsWith('ma'),
     },
     {
       name: 'Dawid',
