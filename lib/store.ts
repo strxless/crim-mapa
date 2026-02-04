@@ -169,6 +169,9 @@ async function ensurePgSchema() {
   );`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS image_url TEXT;`;
   await sql`CREATE INDEX IF NOT EXISTS idx_visits_pin_id ON visits(pin_id);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_visits_visited_at ON visits(visited_at);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_pins_category ON pins(category);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_pins_updated_at ON pins(updated_at DESC);`;
   await sql`CREATE TABLE IF NOT EXISTS categories (
     name TEXT PRIMARY KEY,
     color TEXT NOT NULL
@@ -202,6 +205,9 @@ async function ensureSqliteSchema() {
       visited_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
       `CREATE INDEX IF NOT EXISTS idx_visits_pin_id ON visits(pin_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_visits_visited_at ON visits(visited_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_pins_category ON pins(category)`,
+      `CREATE INDEX IF NOT EXISTS idx_pins_updated_at ON pins(updated_at DESC)`,
       `CREATE TABLE IF NOT EXISTS categories (
       name TEXT PRIMARY KEY,
       color TEXT NOT NULL

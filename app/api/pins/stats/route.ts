@@ -105,14 +105,21 @@ export async function GET() {
         };
       });
 
-    return NextResponse.json({
-      daily: dailyArray,
-      total: pins.length,
-      categories: categoryCount,
-      firstPin: sortedPins.length > 0 ? sortedPins[0].createdAt : null,
-      lastPin: sortedPins.length > 0 ? sortedPins[sortedPins.length - 1].createdAt : null,
-      totalUpdates
-    });
+    return NextResponse.json(
+      {
+        daily: dailyArray,
+        total: pins.length,
+        categories: categoryCount,
+        firstPin: sortedPins.length > 0 ? sortedPins[0].createdAt : null,
+        lastPin: sortedPins.length > 0 ? sortedPins[sortedPins.length - 1].createdAt : null,
+        totalUpdates
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60"
+        }
+      }
+    );
   } catch (error) {
     console.error('Error fetching stats:', error);
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });

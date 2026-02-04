@@ -9,7 +9,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category") || undefined;
   const pins = await listPins(category);
-  return Response.json(pins, { headers: { "Cache-Control": "no-store" } });
+  return Response.json(pins, {
+    headers: {
+      "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30"
+    }
+  });
 }
 
 export async function POST(req: NextRequest) {

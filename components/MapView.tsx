@@ -93,7 +93,16 @@ export default function MapView() {
   const [deleteModalPinId, setDeleteModalPinId] = useState<number | null>(null);
   const mapRef = useRef<any>(null);
 
-  const { data: pins } = useSWR<Pin[]>(`/api/pins${filter ? `?category=${encodeURIComponent(filter)}` : ""}`, fetcher, { refreshInterval: selected ? 0 : 3000, revalidateOnFocus: false });
+  const { data: pins } = useSWR<Pin[]>(
+    `/api/pins${filter ? `?category=${encodeURIComponent(filter)}` : ""}`, 
+    fetcher, 
+    { 
+      refreshInterval: selected ? 0 : 10000,  // Reduced from 3s to 10s
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,  // Prevent duplicate requests within 5s
+      revalidateOnReconnect: true
+    }
+  );
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -112,7 +121,15 @@ export default function MapView() {
     try { localStorage.setItem("categoryColors", JSON.stringify(categoryColors)); } catch {}
   }, [categoryColors]);
 
-  const { data: cats } = useSWR<{ name: string; color: string }[]>(`/api/categories`, fetcher, { refreshInterval: 10000, revalidateOnFocus: false });
+  const { data: cats } = useSWR<{ name: string; color: string }[]>(
+    `/api/categories`, 
+    fetcher, 
+    { 
+      refreshInterval: 60000,  // Reduced from 10s to 60s - categories rarely change
+      revalidateOnFocus: false,
+      dedupingInterval: 30000
+    }
+  );
   const availableCategories = useMemo(() => {
     const names = new Set<string>();
     (cats ?? []).forEach(c => names.add(c.name));
