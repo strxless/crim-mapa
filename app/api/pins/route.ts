@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const pins = await listPins(category);
   return Response.json(pins, {
     headers: {
-      "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30"
+      "Cache-Control": "no-cache, no-store, must-revalidate"
     }
   });
 }

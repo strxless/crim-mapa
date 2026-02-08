@@ -100,9 +100,9 @@ export default function MapView() {
     `/api/pins${filter ? `?category=${encodeURIComponent(filter)}` : ""}`, 
     fetcher, 
     { 
-      refreshInterval: selected ? 0 : 10000,  // Reduced from 3s to 10s
-      revalidateOnFocus: false,
-      dedupingInterval: 5000,  // Prevent duplicate requests within 5s
+      refreshInterval: 10000,
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
       revalidateOnReconnect: true
     }
   );
