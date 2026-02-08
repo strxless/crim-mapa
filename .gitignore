@@ -17,4 +17,4 @@ playwright-report/
 .tmp/
 
 # Uploaded images
-uploads/
+/uploads/
