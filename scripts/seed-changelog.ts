@@ -26,8 +26,12 @@ function getDB() {
 }
 
 async function seedChangelog() {
+  // Auto-generate version with timestamp to trigger on each deploy
+  const now = new Date();
+  const version = process.env.CHANGELOG_VERSION || `2.0.${Math.floor(now.getTime() / 1000)}`;
+  
   const updateData = {
-    version: '2.0.0',
+    version,
     title: 'Duża aktualizacja systemu',
     description: 'Dodałem nowe funkcje i ulepszenia, które ułatwiają codzienną pracę',
     features: JSON.stringify([
@@ -74,6 +78,7 @@ async function seedChangelog() {
       .get(updateData.version);
 
     if (existing) {
+      console.log(`✅ Changelog ${version} already exists`);
       return;
     }
 
@@ -81,6 +86,8 @@ async function seedChangelog() {
       INSERT INTO app_updates (version, title, description, features)
       VALUES (?, ?, ?, ?)
     `).run(updateData.version, updateData.title, updateData.description, updateData.features);
+
+    console.log(`✅ Changelog ${version} seeded to SQLite!`);
 
   } else {
     const sql = getDB();
@@ -90,6 +97,7 @@ async function seedChangelog() {
     `;
 
     if (existing.length > 0) {
+      console.log(`✅ Changelog ${version} already exists`);
       await sql.end();
       return;
     }
@@ -100,6 +108,7 @@ async function seedChangelog() {
     `;
 
     await sql.end();
+    console.log(`✅ Changelog ${version} seeded to PostgreSQL!`);
   }
 }
 

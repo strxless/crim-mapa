@@ -6,15 +6,19 @@ const USE_SQLITE = process.env.USE_SQLITE === 'true';
 
 export async function GET() {
   try {
+    // Auto-generate version with timestamp to trigger on each deploy
+    const now = new Date();
+    const version = process.env.CHANGELOG_VERSION || `2.0.${Math.floor(now.getTime() / 1000)}`;
+    
     const updateData = {
-      version: '2.0.0',
+      version,
       title: 'Duża aktualizacja systemu',
       description: 'Nowe funkcje i ulepszenia ułatwiające codzienną pracę',
       features: JSON.stringify([
         {
           icon: '',
           title: 'Planowanie Patroli',
-          description: 'Nowa zakładka "Plan Patrolu" pozwala tworzyć i zarządzać planami patroli. System automatycznie układa punkty w najkrótszą trasę i pokazuje całkowity dystans do pokonania.',
+          description: 'Nowa zakładka "Plan Patrolu" w kategorii Street pozwala tworzyć i zarządzać planami patroli. System automatycznie układa punkty w najkrótszą trasę i pokazuje całkowity dystans do pokonania.',
           badge: 'NOWE',
         },
         {
@@ -51,7 +55,7 @@ export async function GET() {
       const existing = db.prepare('SELECT id FROM app_updates WHERE version = ?').get(updateData.version);
 
       if (existing) {
-        return NextResponse.json({ message: 'Changelog already exists', success: true });
+        return NextResponse.json({ message: `Changelog ${version} already exists`, version, success: true });
       }
 
       db.prepare(`
@@ -59,14 +63,14 @@ export async function GET() {
         VALUES (?, ?, ?, ?)
       `).run(updateData.version, updateData.title, updateData.description, updateData.features);
 
-      return NextResponse.json({ message: 'Changelog seeded to SQLite!', success: true });
+      return NextResponse.json({ message: `Changelog ${version} seeded to SQLite!`, version, success: true });
     } else {
       const sql = postgres(process.env.POSTGRES_URL!, { max: 1 });
       const existing = await sql`SELECT id FROM app_updates WHERE version = ${updateData.version}`;
 
       if (existing.length > 0) {
         await sql.end();
-        return NextResponse.json({ message: 'Changelog already exists', success: true });
+        return NextResponse.json({ message: `Changelog ${version} already exists`, version, success: true });
       }
 
       await sql`
@@ -75,7 +79,7 @@ export async function GET() {
       `;
 
       await sql.end();
-      return NextResponse.json({ message: 'Changelog seeded to PostgreSQL!', success: true });
+      return NextResponse.json({ message: `Changelog ${version} seeded to PostgreSQL!`, version, success: true });
     }
   } catch (error: any) {
     console.error('Error seeding changelog:', error);
