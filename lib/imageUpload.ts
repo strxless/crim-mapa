@@ -1,7 +1,5 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
-
 export type UploadKind = "pins" | "visits";
 
 type CompressOptions = {
@@ -125,60 +123,31 @@ export async function compressImage(file: File, options: Partial<CompressOptions
 }
 
 export async function uploadImageFile(file: File, kind: UploadKind) {
-  const blob = await compressImage(file);
-
-  const ext = blob.type === "image/webp" ? "webp" : "jpg";
-  const pathname = `${kind}/${Date.now()}-${randomId()}.${ext}`;
-
-  const result = await upload(pathname, blob, {
-    access: "public",
-    handleUploadUrl: "/api/blob",
-    contentType: blob.type,
-  });
-
-  return { url: result.url, contentType: blob.type, size: blob.size };
+  const compressed = await compressImage(file);
+  return uploadImage(compressed);
 }
 
 /**
- * Upload to local /api/uploads endpoint (FormData multipart).
- * Used in local/dev when Vercel Blob is not configured.
+ * Upload a compressed image via /api/uploads.
+ * The server decides where to store it (Vercel Blob in prod, local disk in dev).
  */
-async function uploadImageLocal(compressed: Blob): Promise<string> {
+export async function uploadImage(fileOrBlob: File | Blob): Promise<string> {
+  const compressed = fileOrBlob instanceof File
+    ? await compressImage(fileOrBlob, { maxWidth: 1024, maxHeight: 1024, quality: 0.65 })
+    : fileOrBlob;
+
   const fd = new FormData();
   const ext = compressed.type === "image/webp" ? "webp" : "jpg";
   fd.append("file", compressed, `photo.${ext}`);
+
   const res = await fetch("/api/uploads", { method: "POST", body: fd });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const text = await res.text().catch(() => "Upload failed");
+    throw new Error(text);
+  }
+
   const data = await res.json();
   return data.url;
-}
-
-/**
- * Smart upload: uses Vercel Blob in prod, local file storage in dev.
- * Compresses the image first (max 1024px, 0.65 quality).
- */
-export async function uploadImage(file: File): Promise<string> {
-  const compressed = await compressImage(file, {
-    maxWidth: 1024,
-    maxHeight: 1024,
-    quality: 0.65,
-  });
-
-  // Try Vercel Blob first (prod). The /api/blob endpoint returns 501
-  // when BLOB_READ_WRITE_TOKEN is not set, so we can detect it.
-  try {
-    const ext = compressed.type === "image/webp" ? "webp" : "jpg";
-    const pathname = `visits/${Date.now()}-${randomId()}.${ext}`;
-    const result = await upload(pathname, compressed, {
-      access: "public",
-      handleUploadUrl: "/api/blob",
-      contentType: compressed.type,
-    });
-    return result.url;
-  } catch {
-    // Vercel Blob not available — fall back to local storage
-    return uploadImageLocal(compressed);
-  }
 }
 
 export async function deleteUploadedUrl(url: string) {
