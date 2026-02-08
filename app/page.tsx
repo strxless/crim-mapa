@@ -98,18 +98,18 @@ export default function Page() {
     return (
       <div
         className="w-full h-[calc(100dvh-57px)] flex items-center justify-center"
-        style={{ backgroundColor: "#1f2937" }}
+        style={{ backgroundColor: "var(--bg-primary)" }}
       >
         <div className="w-full max-w-md px-6">
-          <div className="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">
+          <div className="bg-[var(--bg-secondary)] rounded-lg shadow-xl p-8 border border-[var(--border-primary)]">
+            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">
               Wymagane uwierzytelnienie
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-300 mb-2"
+                  className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                 >
                   Email
                 </label>
@@ -119,8 +119,8 @@ export default function Page() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLocked || isPending}
-                  className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${isLocked || isPending
-                    ? "bg-gray-900 cursor-not-allowed opacity-50"
+                  className={`w-full px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent outline-none ${isLocked || isPending
+                    ? "bg-[var(--bg-primary)] cursor-not-allowed opacity-50"
                     : ""
                     }`}
                   placeholder="email pracowniczy"
@@ -132,7 +132,7 @@ export default function Page() {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-300 mb-2"
+                  className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                 >
                   Hasło
                 </label>
@@ -143,8 +143,8 @@ export default function Page() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLocked || isPending}
-                    className={`w-full px-4 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${isLocked || isPending
-                      ? "bg-gray-900 cursor-not-allowed opacity-50"
+                    className={`w-full px-4 py-2 pr-10 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent outline-none ${isLocked || isPending
+                      ? "bg-[var(--bg-primary)] cursor-not-allowed opacity-50"
                       : ""
                       }`}
                     placeholder="Wprowadź hasło"
@@ -155,7 +155,7 @@ export default function Page() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLocked || isPending}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 disabled:opacity-50"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-50"
                     tabIndex={-1}
                   >
                     {showPassword ? (
@@ -174,14 +174,14 @@ export default function Page() {
 
               {error && (
                 <div
-                  className={`text-sm ${isLocked ? "text-red-400 font-semibold" : "text-red-400"}`}
+                  className={`text-sm ${isLocked ? "text-[var(--danger)] font-semibold" : "text-[var(--danger)]"}`}
                 >
                   {error}
                 </div>
               )}
 
               {!isLocked && attemptsLeft < 3 && !error && (
-                <div className="text-gray-400 text-sm">
+                <div className="text-[var(--text-secondary)] text-sm">
                   Pozostało prób: {attemptsLeft}
                 </div>
               )}
@@ -189,9 +189,9 @@ export default function Page() {
               <button
                 type="submit"
                 disabled={isLocked || isPending}
-                className={`w-full py-2 px-4 rounded-lg transition-colors font-medium ${isLocked || isPending
-                  ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                className={`w-full py-2 px-4 rounded transition-colors font-medium ${isLocked || isPending
+                  ? "bg-[var(--bg-tertiary)] text-[var(--text-muted)] cursor-not-allowed"
+                  : "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-hover)]"
                   }`}
               >
                 {isPending
@@ -212,7 +212,7 @@ export default function Page() {
       <button
         onClick={handleLogout}
         disabled={isPending}
-        className="absolute top-4 right-4 z-10 bg-white text-gray-700 px-4 py-2 rounded-lg shadow-md hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
+        className="absolute top-4 right-4 z-10 bg-[var(--bg-secondary)] text-[var(--text-primary)] px-4 py-2 rounded shadow-md hover:bg-[var(--bg-tertiary)] transition-colors text-sm font-medium disabled:opacity-50 border border-[var(--border-primary)]"
       >
         {isPending ? "Wylogowywanie..." : "Wyloguj"}
       </button>

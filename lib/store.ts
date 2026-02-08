@@ -743,6 +743,26 @@ async function ensureStreetworkSchema() {
     // Add columns if they don't exist
     await sql`ALTER TABLE streetwork_stats ADD COLUMN IF NOT EXISTS avatar TEXT;`;
     await sql`ALTER TABLE streetwork_stats ADD COLUMN IF NOT EXISTS bg_color TEXT;`;
+    
+    // Patrol plans schema
+    await sql`CREATE TABLE IF NOT EXISTS patrol_plans (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      date TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );`;
+    
+    await sql`CREATE TABLE IF NOT EXISTS patrol_plan_pins (
+      id SERIAL PRIMARY KEY,
+      patrol_plan_id INTEGER NOT NULL REFERENCES patrol_plans(id) ON DELETE CASCADE,
+      pin_id INTEGER NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );`;
+    
+    await sql`CREATE INDEX IF NOT EXISTS idx_patrol_plan_pins_plan_id ON patrol_plan_pins(patrol_plan_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_patrol_plans_date ON patrol_plans(date);`;
   } else {
     const { getSqlite } = await import('./sqlite');
     const db = await getSqlite();
@@ -767,6 +787,26 @@ async function ensureStreetworkSchema() {
     try {
       await db.execute(`ALTER TABLE streetwork_stats ADD COLUMN bg_color TEXT`);
     } catch {}
+    
+    // Patrol plans schema
+    await db.execute(`CREATE TABLE IF NOT EXISTS patrol_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      date TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+    
+    await db.execute(`CREATE TABLE IF NOT EXISTS patrol_plan_pins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      patrol_plan_id INTEGER NOT NULL REFERENCES patrol_plans(id) ON DELETE CASCADE,
+      pin_id INTEGER NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+    
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_patrol_plan_pins_plan_id ON patrol_plan_pins(patrol_plan_id)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_patrol_plans_date ON patrol_plans(date)`);
   }
 }
 
@@ -921,3 +961,312 @@ export async function getAllStreetworkMonths(): Promise<string[]> {
     return result.rows.map((r: any) => String(r.month));
   }
 }
+
+// ========== PATROL PLANS ==========
+
+export type DBPatrolPlan = {
+  id: number;
+  name: string;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DBPatrolPlanPin = {
+  id: number;
+  patrolPlanId: number;
+  pinId: number;
+  sortOrder: number;
+  createdAt: string;
+};
+
+export async function getAllPatrolPlans(): Promise<DBPatrolPlan[]> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const rows = await sql`SELECT * FROM patrol_plans ORDER BY date DESC, created_at DESC`;
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      name: r.name,
+      date: r.date,
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
+    }));
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    const result = await db.execute(
+      `SELECT * FROM patrol_plans ORDER BY date DESC, datetime(created_at) DESC`
+    );
+    return result.rows.map((r: any) => ({
+      id: Number(r.id),
+      name: String(r.name),
+      date: String(r.date),
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+    }));
+  }
+}
+
+export async function getPatrolPlan(id: number): Promise<DBPatrolPlan | null> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const rows = await sql`SELECT * FROM patrol_plans WHERE id = ${id}`;
+    if (rows.length === 0) return null;
+    const r: any = rows[0];
+    return {
+      id: Number(r.id),
+      name: r.name,
+      date: r.date,
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
+    };
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    const result = await db.execute({
+      sql: `SELECT * FROM patrol_plans WHERE id = ?`,
+      args: [id],
+    });
+    if (result.rows.length === 0) return null;
+    const r: any = result.rows[0];
+    return {
+      id: Number(r.id),
+      name: String(r.name),
+      date: String(r.date),
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+    };
+  }
+}
+
+export async function createPatrolPlan(name: string, date: string): Promise<DBPatrolPlan> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const rows = await sql`
+      INSERT INTO patrol_plans (name, date)
+      VALUES (${name}, ${date})
+      RETURNING *
+    `;
+    const r: any = rows[0];
+    return {
+      id: Number(r.id),
+      name: r.name,
+      date: r.date,
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
+    };
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    const insertResult = await db.execute({
+      sql: `INSERT INTO patrol_plans (name, date) VALUES (?, ?)`,
+      args: [name, date],
+    });
+    const result = await db.execute({
+      sql: `SELECT * FROM patrol_plans WHERE id = ?`,
+      args: [Number(insertResult.lastInsertRowid)],
+    });
+    const r: any = result.rows[0];
+    return {
+      id: Number(r.id),
+      name: String(r.name),
+      date: String(r.date),
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+    };
+  }
+}
+
+export async function updatePatrolPlan(id: number, name: string, date: string): Promise<DBPatrolPlan> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const rows = await sql`
+      UPDATE patrol_plans
+      SET name = ${name}, date = ${date}, updated_at = now()
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    const r: any = rows[0];
+    return {
+      id: Number(r.id),
+      name: r.name,
+      date: r.date,
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+      updatedAt: new Date(r.updated_at).toISOString?.() ?? String(r.updated_at),
+    };
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    await db.execute({
+      sql: `UPDATE patrol_plans SET name = ?, date = ?, updated_at = datetime('now') WHERE id = ?`,
+      args: [name, date, id],
+    });
+    const result = await db.execute({
+      sql: `SELECT * FROM patrol_plans WHERE id = ?`,
+      args: [id],
+    });
+    const r: any = result.rows[0];
+    return {
+      id: Number(r.id),
+      name: String(r.name),
+      date: String(r.date),
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+    };
+  }
+}
+
+export async function deletePatrolPlan(id: number): Promise<void> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    await sql`DELETE FROM patrol_plans WHERE id = ${id}`;
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    await db.execute({
+      sql: `DELETE FROM patrol_plans WHERE id = ?`,
+      args: [id],
+    });
+  }
+}
+
+export async function getPatrolPlanPins(patrolPlanId: number): Promise<Array<DBPatrolPlanPin & { pin: DBPin }>> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const rows = await sql`
+      SELECT pp.*, p.*,
+        pp.id as pp_id, pp.created_at as pp_created_at,
+        p.id as p_id, p.created_at as p_created_at, p.updated_at as p_updated_at
+      FROM patrol_plan_pins pp
+      JOIN pins p ON pp.pin_id = p.id
+      WHERE pp.patrol_plan_id = ${patrolPlanId}
+      ORDER BY pp.sort_order ASC
+    `;
+    return rows.map((r: any) => ({
+      id: Number(r.pp_id),
+      patrolPlanId: Number(r.patrol_plan_id),
+      pinId: Number(r.pin_id),
+      sortOrder: Number(r.sort_order),
+      createdAt: new Date(r.pp_created_at).toISOString?.() ?? String(r.pp_created_at),
+      pin: {
+        id: Number(r.p_id),
+        title: r.title,
+        description: r.description ?? null,
+        lat: Number(r.lat),
+        lng: Number(r.lng),
+        category: r.category,
+        imageUrl: r.image_url ?? null,
+        createdAt: new Date(r.p_created_at).toISOString?.() ?? String(r.p_created_at),
+        updatedAt: new Date(r.p_updated_at).toISOString?.() ?? String(r.p_updated_at),
+        version: Number(r.version),
+        visitsCount: Number(r.visits_count ?? 0),
+      },
+    }));
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    const result = await db.execute({
+      sql: `
+        SELECT pp.id as pp_id, pp.patrol_plan_id, pp.pin_id, pp.sort_order, pp.created_at as pp_created_at,
+               p.id as p_id, p.title, p.description, p.lat, p.lng, p.category, p.image_url,
+               p.created_at as p_created_at, p.updated_at as p_updated_at, p.version, p.visits_count
+        FROM patrol_plan_pins pp
+        JOIN pins p ON pp.pin_id = p.id
+        WHERE pp.patrol_plan_id = ?
+        ORDER BY pp.sort_order ASC
+      `,
+      args: [patrolPlanId],
+    });
+    return result.rows.map((r: any) => ({
+      id: Number(r.pp_id),
+      patrolPlanId: Number(r.patrol_plan_id),
+      pinId: Number(r.pin_id),
+      sortOrder: Number(r.sort_order),
+      createdAt: String(r.pp_created_at),
+      pin: {
+        id: Number(r.p_id),
+        title: String(r.title),
+        description: r.description ? String(r.description) : null,
+        lat: Number(r.lat),
+        lng: Number(r.lng),
+        category: String(r.category),
+        imageUrl: r.image_url ? String(r.image_url) : null,
+        createdAt: String(r.p_created_at),
+        updatedAt: String(r.p_updated_at),
+        version: Number(r.version),
+        visitsCount: Number(r.visits_count ?? 0),
+      },
+    }));
+  }
+}
+
+export async function addPinToPatrolPlan(patrolPlanId: number, pinId: number, sortOrder: number): Promise<DBPatrolPlanPin> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const rows = await sql`
+      INSERT INTO patrol_plan_pins (patrol_plan_id, pin_id, sort_order)
+      VALUES (${patrolPlanId}, ${pinId}, ${sortOrder})
+      RETURNING *
+    `;
+    const r: any = rows[0];
+    return {
+      id: Number(r.id),
+      patrolPlanId: Number(r.patrol_plan_id),
+      pinId: Number(r.pin_id),
+      sortOrder: Number(r.sort_order),
+      createdAt: new Date(r.created_at).toISOString?.() ?? String(r.created_at),
+    };
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    const insertResult = await db.execute({
+      sql: `INSERT INTO patrol_plan_pins (patrol_plan_id, pin_id, sort_order) VALUES (?, ?, ?)`,
+      args: [patrolPlanId, pinId, sortOrder],
+    });
+    const result = await db.execute({
+      sql: `SELECT * FROM patrol_plan_pins WHERE id = ?`,
+      args: [Number(insertResult.lastInsertRowid)],
+    });
+    const r: any = result.rows[0];
+    return {
+      id: Number(r.id),
+      patrolPlanId: Number(r.patrol_plan_id),
+      pinId: Number(r.pin_id),
+      sortOrder: Number(r.sort_order),
+      createdAt: String(r.created_at),
+    };
+  }
+}
+
+export async function removePinFromPatrolPlan(id: number): Promise<void> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    await sql`DELETE FROM patrol_plan_pins WHERE id = ${id}`;
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    await db.execute({
+      sql: `DELETE FROM patrol_plan_pins WHERE id = ?`,
+      args: [id],
+    });
+  }
+}
+
+export async function updatePatrolPlanPinsSortOrder(updates: Array<{ id: number; sortOrder: number }>): Promise<void> {
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    for (const update of updates) {
+      await sql`UPDATE patrol_plan_pins SET sort_order = ${update.sortOrder} WHERE id = ${update.id}`;
+    }
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    for (const update of updates) {
+      await db.execute({
+        sql: `UPDATE patrol_plan_pins SET sort_order = ? WHERE id = ?`,
+        args: [update.sortOrder, update.id],
+      });
+    }
+  }
+}
+

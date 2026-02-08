@@ -105,6 +105,25 @@ export async function initDatabase() {
       last_login TEXT
     )`);
 
+    db.exec(`CREATE TABLE IF NOT EXISTS app_updates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      features TEXT NOT NULL,
+      released_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS user_updates_viewed (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      update_id INTEGER NOT NULL,
+      viewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (update_id) REFERENCES app_updates(id) ON DELETE CASCADE,
+      UNIQUE(user_id, update_id)
+    )`);
+
     const count = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
 
     if (count.count === 0) {
@@ -129,6 +148,23 @@ export async function initDatabase() {
       must_change_password BOOLEAN DEFAULT true,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       last_login TIMESTAMPTZ
+    )`;
+
+    await sql`CREATE TABLE IF NOT EXISTS app_updates (
+      id SERIAL PRIMARY KEY,
+      version TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      features TEXT NOT NULL,
+      released_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`;
+
+    await sql`CREATE TABLE IF NOT EXISTS user_updates_viewed (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      update_id INTEGER NOT NULL REFERENCES app_updates(id) ON DELETE CASCADE,
+      viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(user_id, update_id)
     )`;
 
     const result = await sql`SELECT COUNT(*) as count FROM users`;

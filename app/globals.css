@@ -2,27 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CSS zmienne dla motywu jasny/ciemny */
+/* Professional Dark Theme */
 :root {
-  --bg: #ffffff;
-  --fg: #0a0a0a;
-  --border: #d1d5db;
-  --muted: #6b7280;
+  --bg-primary: #0f1419;
+  --bg-secondary: #1a1f2e;
+  --bg-tertiary: #242b3d;
+  --bg-elevated: #2d3548;
+  --text-primary: #e4e6eb;
+  --text-secondary: #b0b8c1;
+  --text-muted: #8b93a0;
+  --border-primary: #2d3548;
+  --border-secondary: #3d4556;
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #3b82f6;
+  --success: #059669;
+  --success-hover: #047857;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1f2937;
-    --fg: #f9fafb;
-    --border: #374151;
-    --muted: #9ca3af;
-  }
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-/* Minimalny scrollbar */
-*::-webkit-scrollbar { height: 8px; width: 8px; }
-*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
-*::-webkit-scrollbar-track { background: transparent; }
+/* Professional scrollbar */
+*::-webkit-scrollbar { 
+  height: 8px; 
+  width: 8px; 
+}
+*::-webkit-scrollbar-thumb { 
+  background: var(--border-secondary); 
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track { 
+  background: var(--bg-secondary); 
+}
 
 html, body, #__next {
   height: 100%;

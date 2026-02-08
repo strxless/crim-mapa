@@ -58,7 +58,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg animate-[slideDown_0.3s_ease-out]">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] bg-[var(--success)] text-white px-4 py-3 rounded shadow-lg animate-[slideDown_0.3s_ease-out]">
       {message}
     </div>
   );
@@ -66,15 +66,15 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 
 function DeleteConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4" onClick={onCancel}>
-      <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl shadow-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
+      <div className="bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg shadow-2xl p-6 max-w-sm w-full border border-[var(--border-primary)]" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold mb-2">Usunąć pinezkę?</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Tej operacji nie można cofnąć.</p>
+        <p className="text-sm text-[var(--text-secondary)] mb-4">Tej operacji nie można cofnąć.</p>
         <div className="flex gap-2">
-          <button className="flex-1 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600" onClick={onCancel}>
+          <button className="flex-1 px-4 py-2 rounded bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-elevated)] transition-colors" onClick={onCancel}>
             Anuluj
           </button>
-          <button className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-medium" onClick={onConfirm}>
+          <button className="flex-1 px-4 py-2 rounded bg-[var(--danger)] text-white font-medium hover:bg-[var(--danger-hover)] transition-colors" onClick={onConfirm}>
             Usuń
           </button>
         </div>
@@ -91,6 +91,8 @@ export default function MapView() {
   const [editing, setEditing] = useState<boolean>(false);
   const [toast, setToast] = useState<string | null>(null);
   const [deleteModalPinId, setDeleteModalPinId] = useState<number | null>(null);
+  const [showPatrolModal, setShowPatrolModal] = useState<number | null>(null);
+  const [selectedPatrolId, setSelectedPatrolId] = useState<number | null>(null);
   const mapRef = useRef<any>(null);
 
   const { data: pins } = useSWR<Pin[]>(
@@ -130,6 +132,15 @@ export default function MapView() {
       dedupingInterval: 30000
     }
   );
+
+  const { data: patrolPlansData } = useSWR<{plans: Array<{id: number; name: string; date: string}>, pins?: any[]}>(
+    '/api/patrol-plans',
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const patrolPlans = patrolPlansData?.plans || [];
+
   const availableCategories = useMemo(() => {
     const names = new Set<string>();
     (cats ?? []).forEach(c => names.add(c.name));
@@ -224,6 +235,45 @@ export default function MapView() {
     mutate((key) => typeof key === "string" && key.startsWith("/api/pins"));
   }, []);
 
+  const addPinToPatrol = useCallback(async (pinId: number, patrolPlanId: number) => {
+    try {
+      // Get current pins in this patrol plan to determine sortOrder
+      const existingRes = await fetch(`/api/patrol-plans?id=${patrolPlanId}`);
+      if (!existingRes.ok) throw new Error('Failed to fetch patrol plan');
+      const existingData = await existingRes.json();
+      const existingPins = existingData.pins || [];
+      
+      // Check if pin already exists in this patrol
+      const duplicate = existingPins.find((p: any) => p.pinId === pinId);
+      if (duplicate) {
+        alert('Ten pin jest już na tej liście patrolu');
+        return;
+      }
+      
+      const sortOrder = existingPins.length;
+      
+      const res = await fetch(`/api/patrol-plans/${patrolPlanId}/pins`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pinId, sortOrder })
+      });
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+      setToast("Dodano do patrolu");
+      setShowPatrolModal(null);
+      setSelectedPatrolId(null);
+    } catch (err) {
+      const errorMsg = (err as Error).message;
+      if (errorMsg.includes('already exists') || errorMsg.includes('UNIQUE constraint')) {
+        alert('Ten pin jest już na tej liście patrolu');
+      } else {
+        alert(errorMsg);
+      }
+    }
+  }, []);
+
   const [details, setDetails] = useState<{ pin?: Pin; visits?: Visit[] } | null>(null);
   const fetchPinDetails = useCallback(async (id: number) => {
     const res = await fetch(`/api/pins/${id}`, { cache: "no-store" });
@@ -294,9 +344,9 @@ export default function MapView() {
       )}
 
       <div className="absolute z-[1000] left-2 right-2 top-2 flex gap-2 items-center">
-        <div className="flex-1 flex gap-2 bg-white/90 dark:bg-gray-900/90 border border-gray-300 dark:border-gray-700 rounded-xl p-2 backdrop-blur">
+        <div className="flex-1 flex gap-2 bg-[var(--bg-secondary)]/95 border border-[var(--border-primary)] rounded-lg p-2 backdrop-blur shadow-lg">
           <select
-            className="flex-1 px-3 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg border border-gray-300 dark:border-gray-600 text-sm"
+            className="flex-1 px-3 py-3 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded border border-[var(--border-secondary)] text-sm focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
             value={filter}
             onChange={(e) => {
               const val = e.target.value;
@@ -317,14 +367,14 @@ export default function MapView() {
           {filter && (
             <button 
               onClick={() => setFilter("")}
-              className="px-3 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium whitespace-nowrap"
+              className="px-3 py-3 bg-[var(--bg-elevated)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded border border-[var(--border-secondary)] text-sm font-medium whitespace-nowrap transition-colors"
             >
               Wyczyść
             </button>
           )}
           <button
             onClick={() => setAddMode(v => !v)}
-            className={`px-3 py-3 rounded-lg text-sm font-medium border whitespace-nowrap ${addMode ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"}`}
+            className={`px-3 py-3 rounded text-sm font-medium border whitespace-nowrap transition-colors ${addMode ? "bg-[var(--success)] border-[var(--success)] text-white hover:bg-[var(--success-hover)]" : "bg-[var(--bg-elevated)] text-[var(--text-primary)] border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)]"}`}
           >
             {addMode ? "Dotknij mapy" : "+ Dodaj"}
           </button>
@@ -333,8 +383,9 @@ export default function MapView() {
 
       <MapContainer center={[54.5189, 18.5305]} zoom={12} zoomControl={false} className="w-full h-full" scrollWheelZoom ref={mapRef}>
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.thunderforest.com/">Thunderforest</a>'
+          url={`https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY}`}
+          maxZoom={22}
         />
         <ClickCatcher onClick={onMapClick} />
         <ZoomControl position="bottomright" />
@@ -383,22 +434,36 @@ export default function MapView() {
                 </div>
               </Tooltip>
               
-              <Popup minWidth={220} maxWidth={340}>
-                <div className="space-y-2 w-[88vw] max-w-xs max-h-[65vh] overflow-y-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 rounded-lg">
+              <Popup minWidth={280} maxWidth={380} closeButton={true}>
+                <div className="space-y-2 sm:space-y-3 w-[92vw] sm:w-auto max-w-sm max-h-[70vh] overflow-y-auto bg-[var(--bg-secondary)] text-[var(--text-primary)] p-3 sm:p-4 rounded-lg">
                   {!editing ? (
                     <>
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <div className="text-sm font-semibold">{p.title}</div>
-                          <div className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap"><span className="inline-block h-2.5 w-2.5 rounded-full mr-1 align-middle" style={{ backgroundColor: getCategoryColor(p.category) }}></span>{p.category} · {new Date(p.updatedAt).toLocaleString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="flex items-start justify-between gap-2 sm:gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm sm:text-base font-bold mb-1 break-words">{p.title}</div>
+                          <div className="text-[10px] sm:text-xs text-[var(--text-muted)] flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1">
+                              <span className="inline-block h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(p.category) }}></span>
+                              <span className="truncate max-w-[100px] sm:max-w-[120px]">{p.category}</span>
+                            </span>
+                            <span>·</span>
+                            <span className="truncate">{new Date(p.updatedAt).toLocaleString('pl-PL', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-gray-500 dark:text-gray-400">{p.visitsCount ?? 0} odwiedzin</div>
+                        <div className="text-[10px] sm:text-xs text-[var(--text-muted)] whitespace-nowrap bg-[var(--bg-elevated)] px-1.5 sm:px-2 py-1 rounded flex-shrink-0">
+                          {p.visitsCount ?? 0} wizyt
+                        </div>
                       </div>
-                      {p.description && <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{p.description}</p>}
-                      <div className="flex gap-2">
-                        <button className="px-3 py-2 rounded-md bg-red-600 text-white text-sm" onClick={() => setDeleteModalPinId(p.id)}>Usuń</button>
+                      {p.description && <p className="text-xs sm:text-sm leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap break-words">{p.description}</p>}
+                      <div className="grid grid-cols-2 gap-2">
                         <button 
-                          className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--danger)] text-white text-xs sm:text-sm font-medium hover:bg-[var(--danger-hover)] active:scale-95 transition-all touch-manipulation" 
+                          onClick={() => setDeleteModalPinId(p.id)}
+                        >
+                          Usuń
+                        </button>
+                        <button 
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-primary)] text-xs sm:text-sm font-medium border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] active:scale-95 transition-all touch-manipulation" 
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditing(true);
@@ -407,18 +472,54 @@ export default function MapView() {
                           Edytuj
                         </button>
                       </div>
+                      <button 
+                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--accent-primary)] text-white text-xs sm:text-sm font-medium hover:bg-[var(--accent-hover)] active:scale-[0.98] transition-all shadow-sm touch-manipulation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowPatrolModal(showPatrolModal === p.id ? null : p.id);
+                        }}
+                      >
+                        {showPatrolModal === p.id ? '✕ Zamknij' : '+ Dodaj na patrol'}
+                      </button>
+                      {showPatrolModal === p.id && (
+                        <div className="mt-2 p-2.5 sm:p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-secondary)] space-y-2">
+                          <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] mb-2">Wybierz patrol:</div>
+                          {patrolPlans && patrolPlans.length > 0 ? (
+                            <div className="space-y-1.5 sm:space-y-2 max-h-[160px] sm:max-h-[180px] overflow-y-auto pr-1">
+                              {patrolPlans.map(plan => (
+                                <button
+                                  key={plan.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addPinToPatrol(p.id, plan.id);
+                                  }}
+                                  className="w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border-secondary)] active:scale-[0.98] transition-all touch-manipulation"
+                                >
+                                  <div className="font-semibold text-xs sm:text-sm mb-0.5">{plan.name}</div>
+                                  <div className="text-[10px] sm:text-xs text-[var(--text-muted)]">{new Date(plan.date).toLocaleDateString('pl-PL')}</div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs sm:text-sm text-[var(--text-muted)] py-2">
+                              Brak planów patrolu. Utwórz nowy w zakładce Streetwork.
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
+                      <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] mb-2">Edytuj pinezkę</div>
                       <input 
-                        className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
+                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm sm:text-base border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation" 
                         value={selected?.title ?? ""} 
                         onChange={(e) => setSelected(sel => sel ? { ...sel, title: e.target.value } : sel)} 
                         placeholder="Tytuł" 
                       />
                       <div>
                         <select 
-                          className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" 
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm sm:text-base border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation" 
                           value={selected?.category ?? ""} 
                           onChange={(e) => {
                             const val = e.target.value;
@@ -434,39 +535,50 @@ export default function MapView() {
                         </select>
                       </div>
                       <textarea 
-                        className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600" 
+                        rows={3}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm sm:text-base border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation resize-none" 
                         value={selected?.description ?? ""} 
                         onChange={(e) => setSelected(sel => sel ? { ...sel, description: e.target.value } : sel)} 
                         placeholder="Opis" 
                       />
-                      <div className="flex gap-2">
-                        <button className="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm" onClick={() => selected && updatePin(selected)}>Zapisz</button>
-                        <button className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600" onClick={() => setEditing(false)}>Anuluj</button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button 
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--success)] text-white text-xs sm:text-sm font-medium hover:bg-[var(--success-hover)] active:scale-95 transition-all touch-manipulation" 
+                          onClick={() => selected && updatePin(selected)}
+                        >
+                          Zapisz
+                        </button>
+                        <button 
+                          className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-primary)] text-xs sm:text-sm font-medium border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] active:scale-95 transition-all touch-manipulation" 
+                          onClick={() => setEditing(false)}
+                        >
+                          Anuluj
+                        </button>
                       </div>
                     </>
                   )}
 
                   {details?.pin?.id === p.id && (
-                    <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">Historia odwiedzin</div>
-                      <div className="max-h-[90px] overflow-y-auto space-y-2 pr-1 -mr-1">
+                    <div className="pt-2 sm:pt-3 border-t-2 border-[var(--border-secondary)] mt-2 sm:mt-3">
+                      <div className="text-[10px] sm:text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wide">Historia odwiedzin</div>
+                      <div className="max-h-[100px] sm:max-h-[120px] overflow-y-auto space-y-1.5 sm:space-y-2 pr-1 -mr-1">
                         {(details.visits ?? [])
                           .sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime())
                           .map(v => (
-                            <div key={v.id} className="text-sm text-gray-800 dark:text-gray-300">
-                              <span className="font-medium">{v.name}</span>
-                              {v.note ? ` – ${v.note}` : ""}
-                              <span className="text-[11px] text-gray-600 dark:text-gray-400"> · {new Date(v.visitedAt).toLocaleString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                            <div key={v.id} className="text-xs sm:text-sm text-[var(--text-primary)] leading-relaxed bg-[var(--bg-elevated)] p-1.5 sm:p-2 rounded">
+                              <span className="font-semibold">{v.name}</span>
+                              {v.note ? <span className="text-[var(--text-secondary)]"> – {v.note}</span> : ""}
+                              <div className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-0.5">{new Date(v.visitedAt).toLocaleString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                           ))}
                         {(details.visits ?? []).length === 0 && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400">Brak odwiedzin</div>
+                          <div className="text-xs sm:text-sm text-[var(--text-muted)] py-2">Brak odwiedzin</div>
                         )}
                       </div>
-                      <div className="mt-3 space-y-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Dodaj aktualizację</div>
+                      <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-2.5">
+                        <div className="text-[10px] sm:text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Dodaj aktualizację</div>
                         <div className="space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                             {['Dawid', 'Julia', 'Mateusz', 'Łukasz'].map(name => (
                               <button
                                 key={name}
@@ -480,10 +592,10 @@ export default function MapView() {
                                     setVisitName([...currentNames, name].join(', '));
                                   }
                                 }}
-                                className={`px-2 py-1.5 rounded-md font-medium transition-all text-xs ${
+                                className={`px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg font-semibold transition-all text-xs sm:text-sm touch-manipulation active:scale-95 ${
                                   visitName.split(',').map(n => n.trim()).includes(name)
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    ? 'bg-[var(--accent-primary)] text-white shadow-md'
+                                    : 'bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-secondary)]'
                                 }`}
                               >
                                 {name}
@@ -495,18 +607,18 @@ export default function MapView() {
                             type="text"
                             value={visitName}
                             onChange={(e) => setVisitName(e.target.value)}
-                            className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600"
+                            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm sm:text-base border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation"
                             placeholder="Kto odwiedził?"
                           />
                           <textarea
                             value={visitNote}
                             onChange={(e) => setVisitNote(e.target.value)}
-                            className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm border border-gray-300 dark:border-gray-600"
+                            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm sm:text-base border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation resize-none"
                             placeholder="Notatka (opcjonalnie)"
                             rows={2}
                           />
                           <button
-                            className="w-full px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium"
+                            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--accent-primary)] text-white text-xs sm:text-sm font-semibold hover:bg-[var(--accent-hover)] active:scale-[0.98] transition-all shadow-sm touch-manipulation"
                             onClick={() => {
                               if (!visitName.trim()) {
                                 alert("Podaj imię");

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import PatrolPlanManager from '@/components/PatrolPlanManager';
 
 type StreetworkStat = {
   id: number;
@@ -1081,18 +1082,18 @@ const COLOR_OPTIONS = [
 ];
 
 const STAT_COLORS = {
-  interactions: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: '💬' },
+  interactions: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-secondary)]', text: 'text-[var(--accent-light)]', label: 'Interakcje' },
   newContacts: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    text: 'text-green-700',
-    icon: '👥',
+    bg: 'bg-[var(--bg-tertiary)]',
+    border: 'border-[var(--border-secondary)]',
+    text: 'text-[var(--success)]',
+    label: 'Nowe kontakty',
   },
   interventions: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-700',
-    icon: '🚨',
+    bg: 'bg-[var(--bg-tertiary)]',
+    border: 'border-[var(--border-secondary)]',
+    text: 'text-[var(--warning)]',
+    label: 'Interwencje',
   },
 };
 
@@ -1112,6 +1113,7 @@ export default function StreetworkClient({
   const [tempAvatar, setTempAvatar] = useState<string>('');
   const [tempBgColor, setTempBgColor] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'stats' | 'patrol'>('stats');
 
   // Get stats for selected month
   const monthStats = useMemo(() => {
@@ -1238,27 +1240,58 @@ export default function StreetworkClient({
   };
 
   return (
-    <div className="min-h-screen p-3 bg-gradient-to-br from-slate-50 to-slate-100 sm:p-4 md:p-8">
+    <div className="min-h-screen p-3 bg-[var(--bg-primary)] sm:p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
-          <h1 className="mb-1 text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl text-slate-900 sm:mb-2">
+          <h1 className="mb-1 text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl text-[var(--text-primary)] sm:mb-2">
             Streetwork Dashboard
           </h1>
-          <p className="text-xs sm:text-sm md:text-base text-slate-600">
-            Statystyki pracy streetworkerów
+          <p className="text-xs sm:text-sm md:text-base text-[var(--text-secondary)]">
+            Statystyki pracy streetworkerów i plany patroli
           </p>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="mb-4 bg-[var(--bg-secondary)] rounded-lg shadow-lg sm:mb-6 border border-[var(--border-primary)]">
+          <div className="flex border-b border-[var(--border-secondary)]">
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors sm:text-base ${
+                activeTab === 'stats'
+                  ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)] bg-[var(--bg-tertiary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              Statystyki
+            </button>
+            <button
+              onClick={() => setActiveTab('patrol')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors sm:text-base ${
+                activeTab === 'patrol'
+                  ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)] bg-[var(--bg-tertiary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              Plan Patrolu
+            </button>
+          </div>
+        </div>
+
+        {/* Content based on active tab */}
+        {activeTab === 'patrol' ? (
+          <PatrolPlanManager />
+        ) : (
+          <>
         {/* Month Selector */}
-        <div className="p-3 mb-4 bg-white shadow-lg rounded-xl sm:p-4 sm:mb-6">
-          <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-700">
+        <div className="p-3 mb-4 bg-[var(--bg-secondary)] shadow-lg rounded-lg sm:p-4 sm:mb-6 border border-[var(--border-primary)]">
+          <label className="block mb-2 text-xs font-medium sm:text-sm text-[var(--text-secondary)]">
             Wybierz miesiąc
           </label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full px-3 py-2 text-sm border rounded-lg border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-base"
+            className="w-full px-3 py-2 text-sm bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-base"
           >
             {months.map((month) => (
               <option key={month} value={month}>
@@ -1269,29 +1302,26 @@ export default function StreetworkClient({
         </div>
 
         {/* Month Summary */}
-        <div className="p-3 mb-4 border-2 border-purple-200 shadow-lg bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl sm:p-4 md:p-6 sm:mb-6">
-          <h2 className="mb-3 text-sm font-bold sm:text-base md:text-lg text-slate-900 sm:mb-4">
-            Podsumowanie miesiąca: {formatMonthName(selectedMonth)}
+        <div className="p-3 mb-4 border border-[var(--border-primary)] shadow-lg bg-[var(--bg-secondary)] rounded-lg sm:p-4 md:p-6 sm:mb-6">
+          <h2 className="mb-3 text-sm font-bold sm:text-base md:text-lg text-[var(--text-primary)] sm:mb-4">
+            Podsumowanie: {formatMonthName(selectedMonth)}
           </h2>
           <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-            <div className="p-2 bg-white border-2 border-blue-200 rounded-lg sm:p-3 md:p-4">
-              <div className="mb-1 text-xl sm:text-2xl md:text-3xl">💬</div>
-              <div className="mb-1 text-xs sm:text-sm text-slate-600">Interakcje</div>
-              <div className="text-xl font-bold text-blue-600 sm:text-2xl md:text-3xl">
+            <div className="p-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded sm:p-3 md:p-4">
+              <div className="mb-1 text-xs sm:text-sm text-[var(--text-secondary)]">Interakcje</div>
+              <div className="text-xl font-bold text-[var(--accent-light)] sm:text-2xl md:text-3xl">
                 {monthTotals.interactions}
               </div>
             </div>
-            <div className="p-2 bg-white border-2 border-green-200 rounded-lg sm:p-3 md:p-4">
-              <div className="mb-1 text-xl sm:text-2xl md:text-3xl">👥</div>
-              <div className="mb-1 text-xs sm:text-sm text-slate-600">Nowe kontakty</div>
-              <div className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl">
+            <div className="p-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded sm:p-3 md:p-4">
+              <div className="mb-1 text-xs sm:text-sm text-[var(--text-secondary)]">Nowe kontakty</div>
+              <div className="text-xl font-bold text-[var(--success)] sm:text-2xl md:text-3xl">
                 {monthTotals.newContacts}
               </div>
             </div>
-            <div className="p-2 bg-white border-2 rounded-lg sm:p-3 md:p-4 border-amber-200">
-              <div className="mb-1 text-xl sm:text-2xl md:text-3xl">🚨</div>
-              <div className="mb-1 text-xs sm:text-sm text-slate-600">Interwencje</div>
-              <div className="text-xl font-bold sm:text-2xl md:text-3xl text-amber-600">
+            <div className="p-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded sm:p-3 md:p-4">
+              <div className="mb-1 text-xs sm:text-sm text-[var(--text-secondary)]">Interwencje</div>
+              <div className="text-xl font-bold sm:text-2xl md:text-3xl text-[var(--warning)]">
                 {monthTotals.interventions}
               </div>
             </div>
@@ -1304,7 +1334,7 @@ export default function StreetworkClient({
             const stat = monthStats[worker];
 
             return (
-              <div key={worker} className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+              <div key={worker} className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-lg sm:p-4 md:p-6 border border-[var(--border-primary)]">
                 <div className="flex items-center mb-4 gap-3">
                   <button
                     onClick={() => openAvatarModal(worker)}
@@ -1313,7 +1343,7 @@ export default function StreetworkClient({
                     {getWorkerAvatar(worker)}
                   </button>
                   <div className="flex-1">
-                    <h3 className="text-base font-bold sm:text-lg md:text-xl text-slate-900">
+                    <h3 className="text-base font-bold sm:text-lg md:text-xl text-[var(--text-primary)]">
                       {worker}
                     </h3>
                   </div>
@@ -1322,17 +1352,12 @@ export default function StreetworkClient({
                 <div className="space-y-3">
                   {/* Interactions */}
                   <div
-                    className={`${STAT_COLORS.interactions.bg} border-2 ${STAT_COLORS.interactions.border} rounded-lg p-3`}
+                    className={`${STAT_COLORS.interactions.bg} border ${STAT_COLORS.interactions.border} rounded p-3`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base sm:text-lg">
-                          {STAT_COLORS.interactions.icon}
-                        </span>
-                        <span className="text-xs font-medium sm:text-sm text-slate-700">
-                          Interakcje
-                        </span>
-                      </div>
+                      <span className="text-xs font-medium sm:text-sm text-[var(--text-secondary)]">
+                        {STAT_COLORS.interactions.label}
+                      </span>
                       <span
                         className={`text-xl sm:text-2xl font-bold ${STAT_COLORS.interactions.text}`}
                       >
@@ -1343,14 +1368,14 @@ export default function StreetworkClient({
                       <button
                         onClick={() => incrementStat(worker, 'interactions', -1)}
                         disabled={isSaving || (stat?.interactions || 0) === 0}
-                        className="flex-1 px-3 py-2 text-lg font-bold text-blue-700 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-2 text-lg font-bold text-[var(--text-primary)] bg-[var(--bg-elevated)] border border-[var(--border-secondary)] rounded hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         −
                       </button>
                       <button
                         onClick={() => incrementStat(worker, 'interactions', 1)}
                         disabled={isSaving}
-                        className="flex-1 px-3 py-2 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-2 text-lg font-bold text-white bg-[var(--accent-primary)] rounded hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -1359,15 +1384,12 @@ export default function StreetworkClient({
 
                   {/* New Contacts */}
                   <div
-                    className={`${STAT_COLORS.newContacts.bg} border-2 ${STAT_COLORS.newContacts.border} rounded-lg p-3`}
+                    className={`${STAT_COLORS.newContacts.bg} border ${STAT_COLORS.newContacts.border} rounded p-3`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base sm:text-lg">{STAT_COLORS.newContacts.icon}</span>
-                        <span className="text-xs font-medium sm:text-sm text-slate-700">
-                          Nowe kontakty
-                        </span>
-                      </div>
+                      <span className="text-xs font-medium sm:text-sm text-[var(--text-secondary)]">
+                        {STAT_COLORS.newContacts.label}
+                      </span>
                       <span
                         className={`text-xl sm:text-2xl font-bold ${STAT_COLORS.newContacts.text}`}
                       >
@@ -1378,14 +1400,14 @@ export default function StreetworkClient({
                       <button
                         onClick={() => incrementStat(worker, 'newContacts', -1)}
                         disabled={isSaving || (stat?.newContacts || 0) === 0}
-                        className="flex-1 px-3 py-2 text-lg font-bold text-green-700 bg-white border-2 border-green-300 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-2 text-lg font-bold text-[var(--text-primary)] bg-[var(--bg-elevated)] border border-[var(--border-secondary)] rounded hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         −
                       </button>
                       <button
                         onClick={() => incrementStat(worker, 'newContacts', 1)}
                         disabled={isSaving}
-                        className="flex-1 px-3 py-2 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-2 text-lg font-bold text-white bg-[var(--success)] rounded hover:bg-[var(--success-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -1394,17 +1416,12 @@ export default function StreetworkClient({
 
                   {/* Interventions */}
                   <div
-                    className={`${STAT_COLORS.interventions.bg} border-2 ${STAT_COLORS.interventions.border} rounded-lg p-3`}
+                    className={`${STAT_COLORS.interventions.bg} border ${STAT_COLORS.interventions.border} rounded p-3`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base sm:text-lg">
-                          {STAT_COLORS.interventions.icon}
-                        </span>
-                        <span className="text-xs font-medium sm:text-sm text-slate-700">
-                          Interwencje
-                        </span>
-                      </div>
+                      <span className="text-xs font-medium sm:text-sm text-[var(--text-secondary)]">
+                        {STAT_COLORS.interventions.label}
+                      </span>
                       <span
                         className={`text-xl sm:text-2xl font-bold ${STAT_COLORS.interventions.text}`}
                       >
@@ -1415,14 +1432,14 @@ export default function StreetworkClient({
                       <button
                         onClick={() => incrementStat(worker, 'interventions', -1)}
                         disabled={isSaving || (stat?.interventions || 0) === 0}
-                        className="flex-1 px-3 py-2 text-lg font-bold bg-white border-2 rounded-lg border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-2 text-lg font-bold bg-[var(--bg-elevated)] border border-[var(--border-secondary)] rounded text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         −
                       </button>
                       <button
                         onClick={() => incrementStat(worker, 'interventions', 1)}
                         disabled={isSaving}
-                        className="flex-1 px-3 py-2 text-lg font-bold text-white rounded-lg bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-3 py-2 text-lg font-bold text-white rounded bg-[var(--warning)] hover:bg-[var(--danger)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -1437,20 +1454,20 @@ export default function StreetworkClient({
         {/* Avatar Edit Modal */}
         {editingWorker && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black bg-opacity-70"
             onClick={closeAvatarModal}
           >
             <div
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
+              className="bg-[var(--bg-secondary)] rounded-lg shadow-2xl max-w-sm w-full p-3 sm:p-4 max-h-[90vh] overflow-y-auto border border-[var(--border-primary)]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold sm:text-xl text-slate-900">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-bold sm:text-lg text-[var(--text-primary)]">
                   Edytuj profil: {editingWorker}
                 </h3>
                 <button
                   onClick={closeAvatarModal}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-2 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -1464,21 +1481,21 @@ export default function StreetworkClient({
               </div>
 
               {/* Preview */}
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-3">
                 <div
-                  className={`w-20 h-20 bg-gradient-to-br ${tempBgColor} rounded-full flex items-center justify-center text-4xl shadow-lg`}
+                  className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br ${tempBgColor} rounded-full flex items-center justify-center text-3xl sm:text-4xl shadow-lg`}
                 >
                   {tempAvatar}
                 </div>
               </div>
 
               {/* Avatar Selector */}
-              <div className="mb-6">
-                <label className="block mb-3 text-sm font-medium text-slate-700">
+              <div className="mb-3">
+                <label className="block mb-2 text-xs sm:text-sm font-medium text-[var(--text-secondary)]">
                   Wybierz awatar ({AVATAR_OPTIONS.length} opcji)
                 </label>
-                <div className="p-2 overflow-y-auto border-2 rounded-lg max-h-64 border-slate-200">
-                  <div className="grid grid-cols-8 sm:grid-cols-10 gap-1.5">
+                <div className="p-1.5 overflow-y-auto border rounded max-h-48 sm:max-h-56 border-[var(--border-secondary)] bg-[var(--bg-tertiary)]">
+                  <div className="grid grid-cols-9 sm:grid-cols-11 gap-1">
                     {AVATAR_OPTIONS.map((item, idx) => {
                       const isLetter =
                         item.length === 1 && item.match(/[A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż]/);
@@ -1486,11 +1503,11 @@ export default function StreetworkClient({
                         <button
                           key={`${item}-${idx}`}
                           onClick={() => setTempAvatar(item)}
-                          className={`aspect-square p-1.5 sm:p-2 rounded-lg border-2 transition-all ${
+                          className={`aspect-square p-1 sm:p-1.5 rounded border transition-all ${
                             tempAvatar === item
-                              ? 'border-purple-500 bg-purple-50 scale-110 shadow-lg'
-                              : 'border-slate-200 hover:border-purple-300 hover:scale-105'
-                          } ${isLetter ? 'font-bold text-base sm:text-lg bg-gradient-to-br from-slate-100 to-slate-200' : 'text-lg sm:text-xl'}`}
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-elevated)] scale-110 shadow-md'
+                              : 'border-[var(--border-secondary)] hover:border-[var(--accent-light)] hover:scale-105'
+                          } ${isLetter ? 'font-bold text-sm sm:text-base bg-[var(--bg-elevated)]' : 'text-base sm:text-lg'}`}
                         >
                           {item}
                         </button>
@@ -1498,55 +1515,55 @@ export default function StreetworkClient({
                     })}
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Przewiń aby zobaczyć wszystkie opcje</p>
+                <p className="mt-1 text-[10px] sm:text-xs text-[var(--text-muted)]">Przewiń aby zobaczyć wszystkie opcje</p>
               </div>
 
               {/* Color Selector */}
-              <div className="mb-6">
-                <label className="block mb-3 text-sm font-medium text-slate-700">
+              <div className="mb-3">
+                <label className="block mb-2 text-xs sm:text-sm font-medium text-[var(--text-secondary)]">
                   Wybierz kolor tła ({COLOR_OPTIONS.length} opcji)
                 </label>
-                <div className="p-2 overflow-y-auto border-2 rounded-lg max-h-96 border-slate-200">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="p-1.5 overflow-y-auto border rounded max-h-64 sm:max-h-72 border-[var(--border-secondary)] bg-[var(--bg-tertiary)]">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {COLOR_OPTIONS.map((color) => (
                       <button
                         key={color.value}
                         onClick={() => setTempBgColor(color.value)}
-                        className={`p-2 rounded-lg border-2 transition-all ${
+                        className={`p-1.5 rounded border transition-all ${
                           tempBgColor === color.value
-                            ? 'border-purple-500 ring-2 ring-purple-200 scale-105'
-                            : 'border-slate-200 hover:border-purple-300'
+                            ? 'border-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)]/30 scale-105'
+                            : 'border-[var(--border-secondary)] hover:border-[var(--accent-light)]'
                         }`}
                       >
                         <div
-                          className={`h-12 sm:h-16 rounded bg-gradient-to-r ${color.value} mb-1.5 shadow-md`}
+                          className={`h-10 sm:h-12 rounded bg-gradient-to-r ${color.value} mb-1 shadow-sm`}
                         ></div>
-                        <div className="text-[10px] sm:text-xs text-slate-700 font-medium text-center leading-tight">
+                        <div className="text-[9px] sm:text-[10px] text-[var(--text-secondary)] font-medium text-center leading-tight">
                           {color.name}
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Przewiń aby zobaczyć wszystkie kolory</p>
+                <p className="mt-1 text-[10px] sm:text-xs text-[var(--text-muted)]">Przewiń aby zobaczyć wszystkie kolory</p>
               </div>
               {/* Save Button */}
               <div className="flex gap-2">
                 <button
                   onClick={closeAvatarModal}
-                  className="flex-1 px-4 py-3 font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                  className="flex-1 px-3 py-2 text-sm font-medium rounded bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
                 >
                   Anuluj
                 </button>
                 <button
                   onClick={saveAvatar}
                   disabled={isSaving}
-                  className="flex items-center justify-center flex-1 px-4 py-3 font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 gap-2"
+                  className="flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-white bg-[var(--accent-primary)] rounded hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 gap-1.5"
                 >
                   {isSaving ? (
                     <>
                       <svg
-                        className="w-4 h-4 animate-spin"
+                        className="w-3.5 h-3.5 animate-spin"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -1570,7 +1587,7 @@ export default function StreetworkClient({
                   ) : (
                     <>
                       <svg
-                        className="w-4 h-4"
+                        className="w-3.5 h-3.5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1589,6 +1606,8 @@ export default function StreetworkClient({
               </div>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

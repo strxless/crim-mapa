@@ -682,11 +682,11 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
   const getActivityLevel = (created: number, visited: number) => {
     const total = created + visited;
-    if (total === 0) return 'bg-slate-50';
-    if (total <= 2) return 'bg-green-100';
-    if (total <= 5) return 'bg-green-300';
-    if (total <= 10) return 'bg-green-500';
-    return 'bg-green-700';
+    if (total === 0) return 'bg-[var(--bg-tertiary)]';
+    if (total <= 2) return 'bg-green-900/20';
+    if (total <= 5) return 'bg-green-700/30';
+    if (total <= 10) return 'bg-green-500/40';
+    return 'bg-green-400/50';
   };
 
   const getWeekNumber = (date: Date) => {
@@ -772,20 +772,20 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
       : '0';
 
   return (
-    <div className="min-h-screen p-3 bg-gradient-to-br from-slate-50 to-slate-100 sm:p-4 md:p-8">
+    <div className="min-h-screen p-3 bg-[var(--bg-primary)] sm:p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-4 sm:mb-6 md:mb-8">
           <div className="mb-3 sm:mb-4">
-            <h1 className="mb-1 text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl text-slate-900 sm:mb-2">
+            <h1 className="mb-1 text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl text-[var(--text-primary)] sm:mb-2">
               Statystyki CRiIM Mapa
             </h1>
-            <p className="text-xs sm:text-sm md:text-base text-slate-600">
+            <p className="text-xs sm:text-sm md:text-base text-[var(--text-secondary)]">
               Kompleksowa analiza pinezek i aktywności
             </p>
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="bg-[var(--bg-secondary)] rounded-lg shadow-lg border border-[var(--border-primary)]">
+            <div className="grid grid-cols-2 border-b border-[var(--border-secondary)]">
               <button
                 onClick={() => {
                   if (showCalendar) {
@@ -797,35 +797,14 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                   }
                 }}
                 disabled={loadingPins}
-                className="px-4 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors sm:text-base border-r border-[var(--border-secondary)] ${
+                  showCalendar
+                    ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)] bg-[var(--bg-tertiary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {showCalendar ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      />
-                    </svg>
-                    Statystyki
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Kalendarz
-                  </>
-                )}
+                Kalendarz
               </button>
-
               <button
                 onClick={() => {
                   if (showPinsData) {
@@ -836,149 +815,38 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                   }
                 }}
                 disabled={loadingPins}
-                className="px-4 py-2.5 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors sm:text-base ${
+                  showPinsData
+                    ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)] bg-[var(--bg-tertiary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {loadingPins ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Ładowanie...
-                  </>
-                ) : showPinsData ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      />
-                    </svg>
-                    Statystyki
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    Dane pinów
-                  </>
-                )}
+                {loadingPins ? 'Ładowanie...' : 'Dane pinów'}
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 border-b-0">
               <button
                 onClick={exportToExcel}
                 disabled={isExporting}
-                className="px-4 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors sm:text-base border-r border-[var(--border-secondary)] ${
+                  isExporting
+                    ? 'text-[var(--text-muted)] cursor-not-allowed'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+                }`}
               >
-                {isExporting ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span className="hidden sm:inline">Eksportowanie...</span>
-                    <span className="sm:hidden">...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    Excel
-                  </>
-                )}
+                {isExporting ? 'Eksportowanie...' : 'Excel'}
               </button>
-
               <button
                 onClick={refreshStats}
                 disabled={isLoading}
-                className="px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors sm:text-base ${
+                  isLoading
+                    ? 'text-[var(--text-muted)] cursor-not-allowed'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+                }`}
               >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span className="hidden sm:inline">Odświeżanie...</span>
-                    <span className="sm:hidden">...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    Odśwież
-                  </>
-                )}
+                {isLoading ? 'Odświeżanie...' : 'Odśwież'}
               </button>
             </div>
           </div>
@@ -987,12 +855,12 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
         {/* Calendar View */}
         {showCalendar ? (
           <div className="space-y-3 sm:space-y-4">
-            <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
+            <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-lg sm:p-4 md:p-6 border border-[var(--border-primary)]">
               {/* Month Navigation */}
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={prevMonth}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-2 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -1003,12 +871,12 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                     />
                   </svg>
                 </button>
-                <h2 className="text-lg font-bold sm:text-xl md:text-2xl text-slate-900">
+                <h2 className="text-lg font-bold sm:text-xl md:text-2xl text-[var(--text-primary)]">
                   {currentMonth.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}
                 </h2>
                 <button
                   onClick={nextMonth}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-2 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -1026,20 +894,20 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                 const { year, month } = getDaysInMonth(currentMonth);
                 const monthSummary = getMonthSummary(year, month);
                 return (
-                  <div className="p-2 mb-4 border-2 border-indigo-200 rounded-lg sm:p-3 bg-gradient-to-r from-indigo-50 to-purple-50">
-                    <h3 className="mb-2 text-xs font-semibold sm:text-sm text-slate-700">
+                  <div className="p-2 mb-4 border border-[var(--border-secondary)] rounded sm:p-3 bg-[var(--bg-tertiary)]">
+                    <h3 className="mb-2 text-xs font-semibold sm:text-sm text-[var(--text-secondary)]">
                       Podsumowanie miesiąca
                     </h3>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      <div className="p-2 bg-white border border-blue-200 rounded-lg">
-                        <div className="text-[10px] sm:text-xs text-slate-600">Nowe pinezki</div>
-                        <div className="text-xl font-bold text-blue-600 sm:text-2xl">
+                      <div className="p-2 bg-[var(--bg-elevated)] border border-[var(--border-secondary)] rounded">
+                        <div className="text-[10px] sm:text-xs text-[var(--text-secondary)]">Nowe pinezki</div>
+                        <div className="text-xl font-bold text-[var(--accent-light)] sm:text-2xl">
                           +{monthSummary.totalCreated}
                         </div>
                       </div>
-                      <div className="p-2 bg-white border rounded-lg border-amber-200">
-                        <div className="text-[10px] sm:text-xs text-slate-600">Wizyty</div>
-                        <div className="text-xl font-bold sm:text-2xl text-amber-600">
+                      <div className="p-2 bg-[var(--bg-elevated)] border rounded border-[var(--border-secondary)]">
+                        <div className="text-[10px] sm:text-xs text-[var(--text-secondary)]">Wizyty</div>
+                        <div className="text-xl font-bold sm:text-2xl text-[var(--warning)]">
                           ↻{monthSummary.totalVisited}
                         </div>
                       </div>
@@ -1054,7 +922,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                 {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((day) => (
                   <div
                     key={day}
-                    className="p-1 text-xs font-semibold text-center text-slate-600 sm:text-sm sm:p-2"
+                    className="p-1 text-xs font-semibold text-center text-[var(--text-secondary)] sm:text-sm sm:p-2"
                   >
                     {day}
                   </div>
@@ -1082,20 +950,20 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       <button
                         key={day}
                         onClick={() => setSelectedDay(date)}
-                        className={`aspect-square p-1 sm:p-2 rounded-lg border-2 transition-all ${
+                        className={`aspect-square p-1 sm:p-2 rounded border-2 transition-all ${
                           isSelected
-                            ? 'border-indigo-500 ring-2 ring-indigo-200'
-                            : 'border-transparent hover:border-slate-300'
+                            ? 'border-[var(--accent-primary)] ring-2 ring-[var(--accent-primary)]/20'
+                            : 'border-transparent hover:border-[var(--border-secondary)]'
                         } ${activityLevel}`}
                       >
-                        <div className="text-xs font-medium sm:text-sm text-slate-900">{day}</div>
+                        <div className="text-xs font-medium sm:text-sm text-[var(--text-primary)]">{day}</div>
                         {(activity.created > 0 || activity.visited > 0) && (
                           <div className="text-[8px] sm:text-[10px] mt-0.5 sm:mt-1 space-y-0.5">
                             {activity.created > 0 && (
-                              <div className="font-semibold text-blue-700">+{activity.created}</div>
+                              <div className="font-semibold text-[var(--accent-light)]">+{activity.created}</div>
                             )}
                             {activity.visited > 0 && (
-                              <div className="font-semibold text-amber-700">
+                              <div className="font-semibold text-[var(--warning)]">
                                 ↻{activity.visited}
                               </div>
                             )}
@@ -1130,26 +998,26 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
                 return (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold sm:text-sm text-slate-700">
+                    <h3 className="text-xs font-semibold sm:text-sm text-[var(--text-secondary)]">
                       Podsumowania tygodniowe
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                       {weeks.map(({ weekNum, summary }) => (
                         <div
                           key={weekNum}
-                          className="p-2 border-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border-slate-300"
+                          className="p-2 border rounded bg-[var(--bg-tertiary)] border-[var(--border-secondary)]"
                         >
-                          <div className="text-[10px] sm:text-xs text-slate-600 font-semibold mb-1">
+                          <div className="text-[10px] sm:text-xs text-[var(--text-secondary)] font-semibold mb-1">
                             Tydzień {weekNum + 1}
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1">
-                              <div className="text-xs font-bold text-blue-700 sm:text-sm">
+                              <div className="text-xs font-bold text-[var(--accent-light)] sm:text-sm">
                                 +{summary.totalCreated}
                               </div>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="text-xs font-bold sm:text-sm text-amber-700">
+                              <div className="text-xs font-bold sm:text-sm text-[var(--warning)]">
                                 ↻{summary.totalVisited}
                               </div>
                             </div>
@@ -1162,22 +1030,22 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               })()}
 
               {/* Legend */}
-              <div className="flex flex-wrap pt-4 mt-4 text-xs border-t border-slate-200 gap-2 sm:gap-3 sm:text-sm text-slate-600">
+              <div className="flex flex-wrap pt-4 mt-4 text-xs border-t border-[var(--border-secondary)] gap-2 sm:gap-3 sm:text-sm text-[var(--text-secondary)]">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-100 rounded sm:w-4 sm:h-4"></div>
+                  <div className="w-3 h-3 bg-[var(--accent-light)]/20 rounded sm:w-4 sm:h-4"></div>
                   <span>+X = Nowe piny</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded sm:w-4 sm:h-4 bg-amber-100"></div>
+                  <div className="w-3 h-3 rounded sm:w-4 sm:h-4 bg-[var(--warning)]/20"></div>
                   <span>↻X = Wizyty</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 border rounded sm:w-3 sm:h-3 bg-slate-50 border-slate-200"></div>
-                    <div className="w-2 h-2 bg-green-100 rounded sm:w-3 sm:h-3"></div>
-                    <div className="w-2 h-2 bg-green-300 rounded sm:w-3 sm:h-3"></div>
-                    <div className="w-2 h-2 bg-green-500 rounded sm:w-3 sm:h-3"></div>
-                    <div className="w-2 h-2 bg-green-700 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 border rounded sm:w-3 sm:h-3 bg-[var(--bg-tertiary)] border-[var(--border-secondary)]"></div>
+                    <div className="w-2 h-2 bg-green-900/20 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 bg-green-700/30 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 bg-green-500/40 rounded sm:w-3 sm:h-3"></div>
+                    <div className="w-2 h-2 bg-green-400/50 rounded sm:w-3 sm:h-3"></div>
                   </div>
                   <span className="text-[10px] sm:text-xs">Aktywność</span>
                 </div>
@@ -1186,8 +1054,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
             {/* Selected Day Details */}
             {selectedDay && (
-              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
-                <h3 className="mb-4 text-base font-bold sm:text-lg md:text-xl text-slate-900">
+              <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-lg sm:p-4 md:p-6 border border-[var(--border-primary)]">
+                <h3 className="mb-4 text-base font-bold sm:text-lg md:text-xl text-[var(--text-primary)]">
                   {selectedDay.toLocaleDateString('pl-PL', {
                     weekday: 'long',
                     year: 'numeric',
@@ -1201,7 +1069,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
                   if (activity.created === 0 && activity.visited === 0) {
                     return (
-                      <p className="py-8 text-center text-slate-500">Brak aktywności tego dnia</p>
+                      <p className="py-8 text-center text-[var(--text-muted)]">Brak aktywności tego dnia</p>
                     );
                   }
 
@@ -1210,8 +1078,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       {/* New Pins */}
                       {activity.pins.length > 0 && (
                         <div>
-                          <h4 className="flex items-center mb-2 text-sm font-semibold sm:text-base text-slate-900 gap-2">
-                            <span className="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded">
+                          <h4 className="flex items-center mb-2 text-sm font-semibold sm:text-base text-[var(--text-primary)] gap-2">
+                            <span className="px-2 py-1 text-xs text-white bg-[var(--accent-primary)] rounded">
                               +{activity.created}
                             </span>
                             Nowe pinezki
@@ -1220,14 +1088,14 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                             {activity.pins.map((pin) => (
                               <div
                                 key={pin.id}
-                                className="p-3 border border-blue-200 rounded-lg bg-blue-50"
+                                className="p-3 border border-[var(--border-secondary)] rounded-lg bg-[var(--bg-elevated)]"
                               >
-                                <div className="text-sm font-medium text-slate-900 sm:text-base">
+                                <div className="text-sm font-medium text-[var(--text-primary)] sm:text-base">
                                   {pin.title}
                                 </div>
-                                <div className="mt-1 text-xs text-slate-600">{pin.category}</div>
+                                <div className="mt-1 text-xs text-[var(--text-secondary)]">{pin.category}</div>
                                 {pin.description && (
-                                  <div className="mt-1 text-xs text-slate-500">
+                                  <div className="mt-1 text-xs text-[var(--text-muted)]">
                                     {pin.description}
                                   </div>
                                 )}
@@ -1240,8 +1108,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       {/* Visits */}
                       {activity.visits.length > 0 && (
                         <div>
-                          <h4 className="flex items-center mb-2 text-sm font-semibold sm:text-base text-slate-900 gap-2">
-                            <span className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">
+                          <h4 className="flex items-center mb-2 text-sm font-semibold sm:text-base text-[var(--text-primary)] gap-2">
+                            <span className="px-2 py-1 text-xs rounded bg-[var(--warning)] text-white">
                               ↻{activity.visited}
                             </span>
                             Wizyty
@@ -1250,17 +1118,17 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                             {activity.visits.map(({ pin, visit }, idx) => (
                               <div
                                 key={`${pin.id}-${visit.id}-${idx}`}
-                                className="p-3 border rounded-lg bg-amber-50 border-amber-200"
+                                className="p-3 border rounded-lg bg-[var(--bg-elevated)] border-[var(--border-secondary)]"
                               >
-                                <div className="text-sm font-medium text-slate-900 sm:text-base">
+                                <div className="text-sm font-medium text-[var(--text-primary)] sm:text-base">
                                   {pin.title}
                                 </div>
-                                <div className="mt-1 text-xs text-slate-600">
+                                <div className="mt-1 text-xs text-[var(--text-secondary)]">
                                   Odwiedził: {visit.name} •{' '}
                                   {new Date(visit.visitedAt).toLocaleTimeString('pl-PL')}
                                 </div>
                                 {visit.note && (
-                                  <div className="mt-1 text-xs italic text-slate-500">
+                                  <div className="mt-1 text-xs italic text-[var(--text-muted)]">
                                     "{visit.note}"
                                   </div>
                                 )}
@@ -1278,7 +1146,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
         ) : showPinsData ? (
           <div className="space-y-3 sm:space-y-4">
             {/* Search Bar with Autocomplete */}
-            <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4">
+            <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-xl sm:p-4 border border-[var(--border-primary)]">
               <div className="relative">
                 <input
                   type="text"
@@ -1287,12 +1155,12 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-slate-900 text-sm sm:text-base"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-[var(--border-secondary)] rounded-lg focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm sm:text-base"
                 />
 
                 {/* Autocomplete Suggestions */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 overflow-y-auto bg-white border rounded-lg shadow-lg border-slate-300 max-h-60">
+                  <div className="absolute z-10 w-full mt-1 overflow-y-auto bg-[var(--bg-secondary)] border rounded-lg shadow-lg border-[var(--border-secondary)] max-h-60">
                     {suggestions.map((pin) => (
                       <div
                         key={pin.id}
@@ -1301,12 +1169,12 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                           setShowSuggestions(false);
                           setSelectedPin(pin);
                         }}
-                        className="px-3 py-2 border-b cursor-pointer sm:px-4 sm:py-3 hover:bg-purple-50 border-slate-100 last:border-b-0"
+                        className="px-3 py-2 border-b cursor-pointer sm:px-4 sm:py-3 hover:bg-[var(--bg-tertiary)] border-[var(--border-secondary)] last:border-b-0"
                       >
-                        <div className="text-sm font-medium text-slate-900 sm:text-base">
+                        <div className="text-sm font-medium text-[var(--text-primary)] sm:text-base">
                           {pin.title}
                         </div>
-                        <div className="text-xs text-slate-500">{pin.category}</div>
+                        <div className="text-xs text-[var(--text-muted)]">{pin.category}</div>
                       </div>
                     ))}
                   </div>
@@ -1317,13 +1185,13 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               {/* Category Filter Buttons */}
               <div className="mt-3 sm:mt-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold sm:text-sm text-slate-900">
+                  <h3 className="text-xs font-semibold sm:text-sm text-[var(--text-primary)]">
                     Filtruj po kategorii:
                   </h3>
                   {selectedCategories.length > 0 && (
                     <button
                       onClick={() => setSelectedCategories([])}
-                      className="text-xs font-medium text-purple-600 hover:text-purple-700"
+                      className="text-xs font-medium text-[var(--accent-primary)] hover:text-[var(--accent-hover)]"
                     >
                       Wyczyść
                     </button>
@@ -1336,8 +1204,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       onClick={() => toggleCategory(category)}
                       className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
                         selectedCategories.includes(category)
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          ? 'bg-[var(--accent-primary)] text-white'
+                          : 'bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
                       }`}
                     >
                       {category}
@@ -1345,15 +1213,15 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                     </button>
                   ))}
                 </div>
-                <div className="pt-4 mt-4 border-t border-slate-200">
+                <div className="pt-4 mt-4 border-t border-[var(--border-secondary)]">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold sm:text-sm text-slate-900">
+                    <h3 className="text-xs font-semibold sm:text-sm text-[var(--text-primary)]">
                       Filtruj po osobie:
                     </h3>
                     {selectedNames.length > 0 && (
                       <button
                         onClick={() => setSelectedNames([])}
-                        className="text-xs font-medium text-purple-600 hover:text-purple-700"
+                        className="text-xs font-medium text-[var(--accent-primary)] hover:text-[var(--accent-hover)]"
                       >
                         Wyczyść
                       </button>
@@ -1366,8 +1234,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                         onClick={() => toggleName(name)}
                         className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
                           selectedNames.includes(name)
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            ? 'bg-[var(--success)] text-white'
+                            : 'bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
                         }`}
                       >
                         {name}
@@ -1376,13 +1244,13 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                     ))}
                   </div>
                   {selectedNames.length > 0 && (
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
                       Filtrowanie po: {selectedNames.join(', ')}
                     </p>
                   )}
                 </div>
                 {(selectedCategories.length > 0 || selectedNames.length > 0) && (
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
                     Pokazuję {filteredPins.length}{' '}
                     {filteredPins.length === 1 ? 'pinezkę' : 'pinezek'}
                     {selectedCategories.length > 0 &&
@@ -1394,13 +1262,13 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
             </div>
 
             {(selectedCategories.length > 0 || selectedNames.length > 0) && (
-              <div className="p-2 mt-3 border border-purple-200 rounded-lg bg-purple-50">
+              <div className="p-2 mt-3 border border-[var(--border-secondary)] rounded-lg bg-[var(--bg-tertiary)]">
                 <button
                   onClick={() => {
                     setSelectedCategories([]);
                     setSelectedNames([]);
                   }}
-                  className="w-full px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium"
+                  className="w-full px-3 py-1.5 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors text-xs font-medium"
                 >
                   Wyczyść wszystkie filtry ({selectedCategories.length + selectedNames.length})
                 </button>
@@ -1409,8 +1277,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
             {/* Pins List - Mobile optimized */}
             <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-4">
               {/* Pins Column */}
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 max-h-[500px] sm:max-h-[700px] overflow-y-auto">
-                <h2 className="sticky top-0 pb-2 mb-3 text-base font-bold bg-white sm:text-lg md:text-xl text-slate-900 sm:mb-4">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-3 sm:p-4 max-h-[500px] sm:max-h-[700px] overflow-y-auto border border-[var(--border-primary)]">
+                <h2 className="sticky top-0 pb-2 mb-3 text-base font-bold bg-[var(--bg-secondary)] sm:text-lg md:text-xl text-[var(--text-primary)] sm:mb-4">
                   Pinezki ({filteredPins.length})
                 </h2>
                 <div className="space-y-2">
@@ -1420,23 +1288,23 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       onClick={() => setSelectedPin(pin)}
                       className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                         selectedPin?.id === pin.id
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
+                          ? 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)]'
+                          : 'border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-elevated)]'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="flex-1 pr-2 text-sm font-semibold text-slate-900 sm:text-base">
+                        <h3 className="flex-1 pr-2 text-sm font-semibold text-[var(--text-primary)] sm:text-base">
                           {pin.title}
                         </h3>
-                        <span className="px-2 py-1 text-xs text-purple-800 bg-purple-100 rounded whitespace-nowrap">
+                        <span className="px-2 py-1 text-xs text-white bg-[var(--accent-primary)] rounded whitespace-nowrap">
                           {pin.visitsCount} wizyt
                         </span>
                       </div>
-                      <p className="mb-2 text-xs sm:text-sm text-slate-600 line-clamp-2">
+                      <p className="mb-2 text-xs sm:text-sm text-[var(--text-secondary)] line-clamp-2">
                         {pin.description || 'Brak opisu'}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded truncate max-w-[60%]">
+                      <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                        <span className="bg-[var(--success)] text-white px-2 py-1 rounded truncate max-w-[60%]">
                           {pin.category}
                         </span>
                         <span className="whitespace-nowrap">
@@ -1449,31 +1317,31 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               </div>
 
               {/* Selected Pin Details */}
-              <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 max-h-[500px] sm:max-h-[700px] overflow-y-auto">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-3 sm:p-4 max-h-[500px] sm:max-h-[700px] overflow-y-auto border border-[var(--border-primary)]">
                 {selectedPin ? (
                   <div>
-                    <div className="sticky top-0 pb-3 mb-3 bg-white border-b-2 sm:pb-4 sm:mb-4 border-slate-200">
-                      <h2 className="mb-2 text-base font-bold sm:text-lg md:text-xl text-slate-900">
+                    <div className="sticky top-0 pb-3 mb-3 bg-[var(--bg-secondary)] border-b-2 sm:pb-4 sm:mb-4 border-[var(--border-secondary)]">
+                      <h2 className="mb-2 text-base font-bold sm:text-lg md:text-xl text-[var(--text-primary)]">
                         {selectedPin.title}
                       </h2>
-                      <p className="mb-3 text-xs sm:text-sm text-slate-600">
+                      <p className="mb-3 text-xs sm:text-sm text-[var(--text-secondary)]">
                         {selectedPin.description || 'Brak opisu'}
                       </p>
                       <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                        <span className="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full sm:px-3">
+                        <span className="px-2 py-1 text-xs text-white bg-[var(--accent-primary)] rounded-full sm:px-3">
                           {selectedPin.category}
                         </span>
-                        <span className="px-2 py-1 text-xs text-green-800 bg-green-100 rounded-full sm:px-3">
+                        <span className="px-2 py-1 text-xs text-white bg-[var(--success)] rounded-full sm:px-3">
                           {selectedPin.visitsCount} wizyt
                         </span>
-                        <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-800 sm:px-3">
+                        <span className="px-2 py-1 text-xs rounded-full bg-[var(--bg-elevated)] text-[var(--text-secondary)] sm:px-3">
                           {new Date(selectedPin.createdAt).toLocaleDateString('pl-PL')}
                         </span>
                       </div>
 
                       <button
                         onClick={() => exportPinToDocx(selectedPin)}
-                        className="flex items-center justify-center w-full px-4 py-2 mt-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors gap-2"
+                        className="flex items-center justify-center w-full px-4 py-2 mt-3 text-sm font-medium text-white bg-[var(--accent-primary)] rounded-lg hover:bg-[var(--accent-hover)] transition-colors gap-2"
                       >
                         <svg
                           className="w-4 h-4"
@@ -1492,7 +1360,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                       </button>
                     </div>
 
-                    <h3 className="mb-3 text-sm font-semibold sm:text-base md:text-lg text-slate-900">
+                    <h3 className="mb-3 text-sm font-semibold sm:text-base md:text-lg text-[var(--text-primary)]">
                       Wizyty ({selectedPin.visits?.length || 0})
                     </h3>
 
@@ -1501,18 +1369,18 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                         {selectedPin.visits.map((visit) => (
                           <div
                             key={visit.id}
-                            className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200"
+                            className="p-2.5 sm:p-3 bg-[var(--bg-elevated)] rounded-lg border border-[var(--border-secondary)]"
                           >
                             <div className="flex items-start justify-between mb-2 gap-2">
-                              <span className="text-sm font-medium text-slate-900 sm:text-base">
+                              <span className="text-sm font-medium text-[var(--text-primary)] sm:text-base">
                                 {visit.name}
                               </span>
-                              <span className="text-xs text-slate-500 whitespace-nowrap">
+                              <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
                                 {new Date(visit.visitedAt).toLocaleDateString('pl-PL')}
                               </span>
                             </div>
                             {visit.note && (
-                              <p className="mt-2 text-xs italic sm:text-sm text-slate-600">
+                              <p className="mt-2 text-xs italic sm:text-sm text-[var(--text-secondary)]">
                                 "{visit.note}"
                               </p>
                             )}
@@ -1520,13 +1388,13 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                         ))}
                       </div>
                     ) : (
-                      <p className="py-8 text-sm text-center text-slate-500">
+                      <p className="py-8 text-sm text-center text-[var(--text-muted)]">
                         Brak wizyt dla tej pinezki
                       </p>
                     )}
                   </div>
                 ) : (
-                  <div className="h-full min-h-[300px] flex items-center justify-center text-slate-400">
+                  <div className="h-full min-h-[300px] flex items-center justify-center text-[var(--text-muted)]">
                     <div className="px-4 text-center">
                       <svg
                         className="w-12 h-12 mx-auto mb-3 sm:h-16 sm:w-16 sm:mb-4"
@@ -1553,34 +1421,32 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
         ) : (
           <>
             {/* Date Range Filter */}
-            <div className="p-3 mb-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6 sm:mb-4 md:mb-8">
-              <h2 className="mb-3 text-sm font-semibold sm:text-base md:text-lg text-slate-900 sm:mb-4">
+            <div className="p-3 mb-3 bg-[var(--bg-secondary)] shadow-lg rounded-xl sm:p-4 md:p-6 sm:mb-4 md:mb-8 border border-[var(--border-primary)]">
+              <h2 className="mb-3 text-sm font-semibold sm:text-base md:text-lg text-[var(--text-primary)] sm:mb-4">
                 Zakres dat
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-900">
+                    <label className="block mb-2 text-xs font-medium sm:text-sm text-[var(--text-primary)]">
                       Data początkowa
                     </label>
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-2 py-2 text-xs border rounded-lg sm:px-3 border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 sm:text-sm"
-                      style={{ colorScheme: 'light' }}
+                      className="w-full px-2 py-2 text-xs border rounded-lg sm:px-3 border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] sm:text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-xs font-medium sm:text-sm text-slate-900">
+                    <label className="block mb-2 text-xs font-medium sm:text-sm text-[var(--text-primary)]">
                       Data końcowa
                     </label>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-2 py-2 text-xs border rounded-lg sm:px-3 border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 sm:text-sm"
-                      style={{ colorScheme: 'light' }}
+                      className="w-full px-2 py-2 text-xs border rounded-lg sm:px-3 border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] sm:text-sm"
                     />
                   </div>
                 </div>
@@ -1589,7 +1455,7 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
                     setStartDate('');
                     setEndDate('');
                   }}
-                  className="w-full px-4 py-2 text-xs font-medium text-white rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors sm:text-sm"
+                  className="w-full px-4 py-2 text-xs font-medium text-white rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--bg-tertiary)] transition-colors sm:text-sm border border-[var(--border-secondary)]"
                 >
                   Resetuj filtry
                 </button>
@@ -1598,73 +1464,73 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
             {/* Primary KPIs */}
             <div className="mb-3 grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 sm:mb-4 md:mb-8">
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
-                <div className="mb-1 text-xs font-medium text-slate-500">TOTAL</div>
-                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-[var(--accent-primary)] hover:shadow-xl transition-shadow">
+                <div className="mb-1 text-xs font-medium text-[var(--text-muted)]">TOTAL</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-[var(--text-primary)]">
                   {filteredStats.total}
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Wszystkie piny</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 sm:mt-1">Wszystkie piny</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-amber-500 hover:shadow-xl transition-shadow">
-                <div className="mb-1 text-xs font-medium text-slate-500">WIZYTY</div>
-                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-[var(--warning)] hover:shadow-xl transition-shadow">
+                <div className="mb-1 text-xs font-medium text-[var(--text-muted)]">WIZYTY</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-[var(--text-primary)]">
                   {filteredStats.totalUpdates || 0}
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Aktualizacji</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 sm:mt-1">Aktualizacji</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
-                <div className="mb-1 text-xs font-medium text-slate-500">WZROST</div>
-                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-[var(--success)] hover:shadow-xl transition-shadow">
+                <div className="mb-1 text-xs font-medium text-[var(--text-muted)]">WZROST</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-[var(--text-primary)]">
                   {growthRate}%
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Od początku</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 sm:mt-1">Od początku</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
-                <div className="mb-1 text-xs font-medium text-slate-500">ŚREDNIA</div>
-                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-[var(--accent-secondary)] hover:shadow-xl transition-shadow">
+                <div className="mb-1 text-xs font-medium text-[var(--text-muted)]">ŚREDNIA</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-[var(--text-primary)]">
                   {avgPerDay}
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Pinów/dzień</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 sm:mt-1">Pinów/dzień</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
-                <div className="mb-1 text-xs font-medium text-slate-500">KATEGORIE</div>
-                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-4 md:p-6 border-l-4 border-[var(--warning)] hover:shadow-xl transition-shadow">
+                <div className="mb-1 text-xs font-medium text-[var(--text-muted)]">KATEGORIE</div>
+                <p className="text-lg font-bold sm:text-2xl md:text-3xl text-[var(--text-primary)]">
                   {Object.keys(filteredStats.categories).length}
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5 sm:mt-1">Typów</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 sm:mt-1">Typów</p>
               </div>
             </div>
 
             {/* Secondary KPIs */}
             <div className="mb-3 grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 sm:mb-4 md:mb-8">
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="mb-1 text-xs text-slate-500">Aktywność totalna</div>
-                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-[var(--border-secondary)]">
+                <div className="mb-1 text-xs text-[var(--text-muted)]">Aktywność totalna</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-[var(--text-primary)]">
                   {totalActivity}
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="mb-1 text-xs text-slate-500">Ratio wizyt/pin</div>
-                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-[var(--border-secondary)]">
+                <div className="mb-1 text-xs text-[var(--text-muted)]">Ratio wizyt/pin</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-[var(--text-primary)]">
                   {activityRatio}
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="mb-1 text-xs text-slate-500">Max pinów/dzień</div>
-                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-[var(--border-secondary)]">
+                <div className="mb-1 text-xs text-[var(--text-muted)]">Max pinów/dzień</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-[var(--text-primary)]">
                   {maxDailyPins}
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-slate-200">
-                <div className="mb-1 text-xs text-slate-500">Śr. wizyt/dzień</div>
-                <p className="text-base font-bold sm:text-xl md:text-2xl text-slate-900">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-lg p-2.5 sm:p-3 md:p-4 border border-[var(--border-secondary)]">
+                <div className="mb-1 text-xs text-[var(--text-muted)]">Śr. wizyt/dzień</div>
+                <p className="text-base font-bold sm:text-xl md:text-2xl text-[var(--text-primary)]">
                   {avgUpdatesPerDay}
                 </p>
               </div>
@@ -1673,8 +1539,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
             {/* Main Charts */}
             <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 sm:mb-4 md:mb-6">
               {/* Cumulative Growth */}
-              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
-                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
+              <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-xl sm:p-4 md:p-6 border border-[var(--border-primary)]">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-[var(--text-primary)] sm:mb-3 md:mb-4">
                   Wzrost kumulatywny
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1711,8 +1577,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               </div>
 
               {/* Daily Additions */}
-              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
-                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
+              <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-xl sm:p-4 md:p-6 border border-[var(--border-primary)]">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-[var(--text-primary)] sm:mb-3 md:mb-4">
                   Nowe piny
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1743,8 +1609,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
 
             {/* Category Distribution */}
             <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 sm:mb-4 md:mb-6">
-              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
-                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
+              <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-xl sm:p-4 md:p-6 border border-[var(--border-primary)]">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-[var(--text-primary)] sm:mb-3 md:mb-4">
                   Rozkład kategorii
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1777,8 +1643,8 @@ export default function StatsClient({ stats }: { stats: StatsData }) {
               </div>
 
               {/* Category Bar Chart */}
-              <div className="p-3 bg-white shadow-lg rounded-xl sm:p-4 md:p-6">
-                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-slate-900 sm:mb-3 md:mb-4">
+              <div className="p-3 bg-[var(--bg-secondary)] shadow-lg rounded-xl sm:p-4 md:p-6 border border-[var(--border-primary)]">
+                <h2 className="mb-2 text-sm font-bold sm:text-base md:text-xl text-[var(--text-primary)] sm:mb-3 md:mb-4">
                   Ranking kategorii
                 </h2>
                 <ResponsiveContainer width="100%" height={200}>
