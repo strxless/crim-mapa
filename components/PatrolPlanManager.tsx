@@ -93,6 +93,10 @@ export default function PatrolPlanManager() {
   // Pin search/autocomplete
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Edit plan name
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  const [editingPlanName, setEditingPlanName] = useState('');
 
   // Load plans and pins on mount
   useEffect(() => {
@@ -176,6 +180,33 @@ export default function PatrolPlanManager() {
       }
     } catch (error) {
       console.error('Error deleting plan:', error);
+    }
+  };
+
+  const updatePlanName = async (planId: number, newName: string) => {
+    if (!newName.trim()) {
+      setEditingPlanId(null);
+      return;
+    }
+
+    try {
+      const plan = plans.find(p => p.id === planId);
+      if (!plan) return;
+
+      const res = await fetch(`/api/patrol-plans/${planId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName, date: plan.date }),
+      });
+      const updatedPlan = await res.json();
+      
+      setPlans(plans.map(p => p.id === planId ? updatedPlan : p));
+      if (selectedPlan?.id === planId) {
+        setSelectedPlan(updatedPlan);
+      }
+      setEditingPlanId(null);
+    } catch (error) {
+      console.error('Error updating plan name:', error);
     }
   };
 
@@ -358,24 +389,56 @@ export default function PatrolPlanManager() {
                 }`}
                 onClick={() => setSelectedPlan(plan)}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-[var(--text-primary)]">{plan.name}</h3>
-                    <p className="text-sm text-[var(--text-secondary)]">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    {editingPlanId === plan.id ? (
+                      <input
+                        type="text"
+                        value={editingPlanName}
+                        onChange={(e) => setEditingPlanName(e.target.value)}
+                        onBlur={() => updatePlanName(plan.id, editingPlanName)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') updatePlanName(plan.id, editingPlanName);
+                          if (e.key === 'Escape') setEditingPlanId(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                        className="w-full px-2 py-1 bg-[var(--bg-elevated)] border border-[var(--accent-primary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] text-sm font-semibold"
+                      />
+                    ) : (
+                      <h3 className="font-semibold text-[var(--text-primary)] truncate">{plan.name}</h3>
+                    )}
+                    <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
                       {new Date(plan.date).toLocaleDateString('pl-PL')}
                     </p>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deletePlan(plan.id);
-                    }}
-                    className="p-2 text-[var(--danger)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingPlanId(plan.id);
+                        setEditingPlanName(plan.name);
+                      }}
+                      className="p-1.5 sm:p-2 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+                      title="Zmień nazwę"
+                    >
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deletePlan(plan.id);
+                      }}
+                      className="p-1.5 sm:p-2 text-[var(--danger)] hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+                      title="Usuń plan"
+                    >
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
