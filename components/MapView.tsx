@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import type { Pin, Visit } from "@/types";
+import { uploadImage } from "@/lib/imageUpload";
 import "leaflet/dist/leaflet.css";
 
 // Dynamically import react-leaflet components (client-only)
@@ -280,17 +281,31 @@ export default function MapView() {
     if (res.ok) setDetails(await res.json());
   }, []);
 
-  const addVisit = useCallback(async (pinId: number, name: string, note?: string) => {
+  const addVisit = useCallback(async (pinId: number, name: string, note?: string, imageFile?: File | null) => {
+    let imageUrl: string | undefined;
+    if (imageFile) {
+      setVisitImageUploading(true);
+      try {
+        imageUrl = await uploadImage(imageFile);
+      } catch (e) {
+        setVisitImageUploading(false);
+        alert("Nie udalo sie przeslac zdjecia");
+        return;
+      }
+      setVisitImageUploading(false);
+    }
     const res = await fetch(`/api/pins/${pinId}/visits`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, note })
+      body: JSON.stringify({ name, note, imageUrl })
     });
     if (!res.ok) {
-      alert("Nie udało się dodać aktualizacji");
+      alert("Nie udalo sie dodac aktualizacji");
     } else {
       setToast("Zaktualizowano");
     }
+    setVisitImageFile(null);
+    setVisitImagePreview(null);
     await fetchPinDetails(pinId);
     mutate((key) => typeof key === "string" && key.startsWith("/api/pins"));
   }, [fetchPinDetails]);
@@ -301,7 +316,12 @@ export default function MapView() {
 
   const [visitName, setVisitName] = useState("");
   const [visitNote, setVisitNote] = useState("");
+  const [visitImageFile, setVisitImageFile] = useState<File | null>(null);
+  const [visitImagePreview, setVisitImagePreview] = useState<string | null>(null);
+  const [visitImageUploading, setVisitImageUploading] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const visitNameRef = useRef<HTMLInputElement>(null);
+  const visitFileRef = useRef<HTMLInputElement>(null);
 
   const clearDraft = () => {
     setTitle("");
@@ -341,6 +361,26 @@ export default function MapView() {
           onConfirm={() => deletePin(deleteModalPinId)}
           onCancel={() => setDeleteModalPinId(null)}
         />
+      )}
+
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 p-4 touch-manipulation"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 text-white text-xl font-bold hover:bg-white/30 active:scale-90 transition-all touch-manipulation z-10"
+            onClick={() => setLightboxUrl(null)}
+          >
+            ✕
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Zdjęcie powiększone"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
 
       <div className="absolute z-[1000] left-2 right-2 top-2 flex gap-2 items-center">
@@ -413,6 +453,9 @@ export default function MapView() {
                   setEditing(false); 
                   setVisitName(""); 
                   setVisitNote(""); 
+                  setVisitImageFile(null);
+                  if (visitImagePreview) URL.revokeObjectURL(visitImagePreview);
+                  setVisitImagePreview(null);
                 } 
               }}
             >
@@ -568,6 +611,20 @@ export default function MapView() {
                             <div key={v.id} className="text-xs sm:text-sm text-[var(--text-primary)] leading-relaxed bg-[var(--bg-elevated)] p-1.5 sm:p-2 rounded">
                               <span className="font-semibold">{v.name}</span>
                               {v.note ? <span className="text-[var(--text-secondary)]"> – {v.note}</span> : ""}
+                              {v.imageUrl && (
+                                <button
+                                  type="button"
+                                  className="mt-1 block rounded overflow-hidden border border-[var(--border-secondary)] active:opacity-80 transition-opacity touch-manipulation"
+                                  onClick={(e) => { e.stopPropagation(); setLightboxUrl(v.imageUrl!); }}
+                                >
+                                  <img
+                                    src={v.imageUrl}
+                                    alt="Zdjęcie z wizyty"
+                                    loading="lazy"
+                                    className="w-full max-w-[160px] h-auto max-h-[100px] object-cover rounded"
+                                  />
+                                </button>
+                              )}
                               <div className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-0.5">{new Date(v.visitedAt).toLocaleString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                           ))}
@@ -617,19 +674,68 @@ export default function MapView() {
                             placeholder="Notatka (opcjonalnie)"
                             rows={2}
                           />
+                          {/* Image picker */}
+                          <input
+                            ref={visitFileRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setVisitImageFile(file);
+                                const url = URL.createObjectURL(file);
+                                setVisitImagePreview(url);
+                              }
+                              e.target.value = '';
+                            }}
+                          />
+                          {visitImagePreview ? (
+                            <div className="relative inline-block">
+                              <img
+                                src={visitImagePreview}
+                                alt="Podglad"
+                                className="w-full max-h-[120px] object-cover rounded-lg border border-[var(--border-secondary)]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVisitImageFile(null);
+                                  if (visitImagePreview) URL.revokeObjectURL(visitImagePreview);
+                                  setVisitImagePreview(null);
+                                }}
+                                className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 text-white text-xs font-bold hover:bg-black/80 active:scale-90 transition-all touch-manipulation"
+                              >
+                                x
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => visitFileRef.current?.click()}
+                              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-primary)] text-xs sm:text-sm font-medium border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] active:scale-95 transition-all touch-manipulation"
+                            >
+                              Dodaj zdjecie
+                            </button>
+                          )}
                           <button
-                            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-[var(--accent-primary)] text-white text-xs sm:text-sm font-semibold hover:bg-[var(--accent-hover)] active:scale-[0.98] transition-all shadow-sm touch-manipulation"
+                            disabled={visitImageUploading}
+                            className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-white text-xs sm:text-sm font-semibold active:scale-[0.98] transition-all shadow-sm touch-manipulation ${
+                              visitImageUploading
+                                ? 'bg-[var(--accent-primary)]/60 cursor-wait'
+                                : 'bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)]'
+                            }`}
                             onClick={() => {
                               if (!visitName.trim()) {
                                 alert("Podaj imię");
                                 return;
                               }
-                              addVisit(p.id, visitName.trim(), visitNote.trim() || undefined);
+                              addVisit(p.id, visitName.trim(), visitNote.trim() || undefined, visitImageFile);
                               setVisitName("");
                               setVisitNote("");
                             }}
                           >
-                            Dodaj aktualizację
+                            {visitImageUploading ? 'Przesyłanie zdjęcia...' : 'Dodaj aktualizację'}
                           </button>
                         </div>
                       </div>

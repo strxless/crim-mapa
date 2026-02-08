@@ -17,6 +17,12 @@ export async function GET() {
       features: JSON.stringify([
         {
           icon: '',
+          title: 'Dodawanie Zdjęć',
+          description: 'Dodałem możliwość dodawania zdjęć do odwiedzin. Po kliknięciu "Dodaj zdjęcie" system automatycznie kompresuje obraz i przesyła go. Zdjęcia są widoczne w historii odwiedzin — kliknięcie na miniaturkę pokazuje pełny podgląd.',
+          badge: 'NOWE',
+        },
+        {
+          icon: '',
           title: 'Planowanie Patroli',
           description: 'Nowa zakładka "Plan Patrolu" w kategorii Street pozwala tworzyć i zarządzać planami patroli. System automatycznie układa punkty w najkrótszą trasę i pokazuje całkowity dystans do pokonania.',
           badge: 'NOWE',

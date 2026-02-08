@@ -16,6 +16,7 @@ export type Visit = {
   pinId: number;
   name: string;
   note: string | null;
+  imageUrl?: string | null;
   visitedAt: string;
 };
 

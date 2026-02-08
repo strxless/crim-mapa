@@ -49,6 +49,12 @@ async function seedChangelog() {
       },
       {
         icon: '',
+        title: 'Dodawanie Zdjęć',
+        description: 'Dodałem możliwość dodawania zdjęć do odwiedzin. Po kliknięciu „Dodaj zdjęcie” system automatycznie kompresuje obraz i przesyła go. Zdjęcia są widoczne w historii odwiedzin, kliknięcie na miniaturkę pokazuje pełny podgląd.',
+        badge: 'NOWE',
+      },
+      {
+        icon: '',
         title: 'Lepsza Mapa',
         description: 'Zamieniłem standardową mapę na specjalną mapę transportową, która wyraźniej pokazuje ulice, jak i linie autobusowe, przystanki i trasę autobusów.',
       },
