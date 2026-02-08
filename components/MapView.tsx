@@ -323,6 +323,48 @@ export default function MapView() {
   const visitNameRef = useRef<HTMLInputElement>(null);
   const visitFileRef = useRef<HTMLInputElement>(null);
 
+  // Edit visit state
+  const [editingVisitId, setEditingVisitId] = useState<number | null>(null);
+  const [editVisitName, setEditVisitName] = useState("");
+  const [editVisitNote, setEditVisitNote] = useState("");
+  const [editVisitSaving, setEditVisitSaving] = useState(false);
+
+  const startEditVisit = useCallback((v: Visit) => {
+    setEditingVisitId(v.id);
+    setEditVisitName(v.name);
+    setEditVisitNote(v.note ?? "");
+  }, []);
+
+  const cancelEditVisit = useCallback(() => {
+    setEditingVisitId(null);
+    setEditVisitName("");
+    setEditVisitNote("");
+  }, []);
+
+  const saveEditVisit = useCallback(async (pinId: number) => {
+    if (!editingVisitId || !editVisitName.trim()) return;
+    setEditVisitSaving(true);
+    try {
+      const res = await fetch(`/api/pins/${pinId}/visits`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitId: editingVisitId, name: editVisitName.trim(), note: editVisitNote.trim() || null }),
+      });
+      if (!res.ok) {
+        alert("Nie udalo sie zapisac zmian");
+      } else {
+        setToast("Zapisano zmiany");
+        cancelEditVisit();
+        await fetchPinDetails(pinId);
+        mutate((key) => typeof key === "string" && key.startsWith("/api/pins"));
+      }
+    } catch {
+      alert("Blad sieci");
+    } finally {
+      setEditVisitSaving(false);
+    }
+  }, [editingVisitId, editVisitName, editVisitNote, cancelEditVisit, fetchPinDetails]);
+
   const clearDraft = () => {
     setTitle("");
     setCategory("");
@@ -609,23 +651,96 @@ export default function MapView() {
                           .sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime())
                           .map(v => (
                             <div key={v.id} className="text-xs sm:text-sm text-[var(--text-primary)] leading-relaxed bg-[var(--bg-elevated)] p-1.5 sm:p-2 rounded">
-                              <span className="font-semibold">{v.name}</span>
-                              {v.note ? <span className="text-[var(--text-secondary)]"> – {v.note}</span> : ""}
-                              {v.imageUrl && (
-                                <button
-                                  type="button"
-                                  className="mt-1 block rounded overflow-hidden border border-[var(--border-secondary)] active:opacity-80 transition-opacity touch-manipulation"
-                                  onClick={(e) => { e.stopPropagation(); setLightboxUrl(v.imageUrl!); }}
-                                >
-                                  <img
-                                    src={v.imageUrl}
-                                    alt="Zdjęcie z wizyty"
-                                    loading="lazy"
-                                    className="w-full max-w-[160px] h-auto max-h-[100px] object-cover rounded"
+                              {editingVisitId === v.id ? (
+                                <div className="space-y-2">
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {['Dawid', 'Julia', 'Mateusz', 'Łukasz'].map(name => (
+                                      <button
+                                        key={name}
+                                        type="button"
+                                        onClick={() => {
+                                          const currentNames = editVisitName.split(',').map(n => n.trim()).filter(Boolean);
+                                          if (currentNames.includes(name)) {
+                                            setEditVisitName(currentNames.filter(n => n !== name).join(', '));
+                                          } else {
+                                            setEditVisitName([...currentNames, name].join(', '));
+                                          }
+                                        }}
+                                        className={`px-2 py-1.5 rounded-lg font-semibold transition-all text-xs touch-manipulation active:scale-95 ${
+                                          editVisitName.split(',').map(n => n.trim()).includes(name)
+                                            ? 'bg-[var(--accent-primary)] text-white shadow-md'
+                                            : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-secondary)]'
+                                        }`}
+                                      >
+                                        {name}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={editVisitName}
+                                    onChange={(e) => setEditVisitName(e.target.value)}
+                                    className="w-full px-2 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-xs border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation"
+                                    placeholder="Kto odwiedzil?"
                                   />
-                                </button>
+                                  <textarea
+                                    value={editVisitNote}
+                                    onChange={(e) => setEditVisitNote(e.target.value)}
+                                    className="w-full px-2 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-xs border border-[var(--border-secondary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent touch-manipulation resize-none"
+                                    placeholder="Notatka (opcjonalnie)"
+                                    rows={2}
+                                  />
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <button
+                                      disabled={editVisitSaving}
+                                      onClick={() => saveEditVisit(p.id)}
+                                      className={`px-2 py-1.5 rounded-lg text-white text-xs font-semibold active:scale-95 transition-all touch-manipulation ${
+                                        editVisitSaving ? 'bg-[var(--success)]/60 cursor-wait' : 'bg-[var(--success)] hover:bg-[var(--success-hover)]'
+                                      }`}
+                                    >
+                                      {editVisitSaving ? 'Zapisywanie...' : 'Zapisz'}
+                                    </button>
+                                    <button
+                                      onClick={cancelEditVisit}
+                                      className="px-2 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-xs font-medium border border-[var(--border-secondary)] active:scale-95 transition-all touch-manipulation"
+                                    >
+                                      Anuluj
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-start justify-between gap-1">
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-semibold">{v.name}</span>
+                                      {v.note ? <span className="text-[var(--text-secondary)]"> – {v.note}</span> : ""}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); startEditVisit(v); }}
+                                      className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] active:scale-90 transition-all touch-manipulation"
+                                      title="Edytuj"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    </button>
+                                  </div>
+                                  {v.imageUrl && (
+                                    <button
+                                      type="button"
+                                      className="mt-1 block rounded overflow-hidden border border-[var(--border-secondary)] active:opacity-80 transition-opacity touch-manipulation"
+                                      onClick={(e) => { e.stopPropagation(); setLightboxUrl(v.imageUrl!); }}
+                                    >
+                                      <img
+                                        src={v.imageUrl}
+                                        alt="Zdjęcie z wizyty"
+                                        loading="lazy"
+                                        className="w-full max-w-[160px] h-auto max-h-[100px] object-cover rounded"
+                                      />
+                                    </button>
+                                  )}
+                                  <div className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-0.5">{new Date(v.visitedAt).toLocaleString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                                </>
                               )}
-                              <div className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-0.5">{new Date(v.visitedAt).toLocaleString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                           ))}
                         {(details.visits ?? []).length === 0 && (

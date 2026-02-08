@@ -708,6 +708,75 @@ export async function addVisit(
   }
 }
 
+export async function updateVisit(
+  visitId: number,
+  input: { name?: string; note?: string | null; imageUrl?: string | null }
+): Promise<DBVisit> {
+  invalidateCachePrefix('pins:');
+
+  if (isPostgresSelected()) {
+    const sql = getPostgres();
+    const existing = await sql`SELECT * FROM visits WHERE id = ${visitId}`;
+    if (existing.length === 0) throw new Error('Not found');
+
+    const current = existing[0] as any;
+    const name = input.name ?? current.name;
+    const note = input.note !== undefined ? input.note : current.note;
+    const imageUrl = input.imageUrl !== undefined ? input.imageUrl : current.image_url;
+
+    const res = await sql`
+      UPDATE visits SET name = ${name}, note = ${note ?? null}, image_url = ${imageUrl ?? null}
+      WHERE id = ${visitId}
+      RETURNING id, pin_id, name, note, image_url, visited_at
+    `;
+    // Bump parent pin version
+    await sql`UPDATE pins SET updated_at = now(), version = version + 1 WHERE id = ${current.pin_id}`;
+
+    const v: any = res[0];
+    return {
+      id: Number(v.id),
+      pinId: Number(v.pin_id),
+      name: v.name,
+      note: v.note ?? null,
+      imageUrl: v.image_url ?? null,
+      visitedAt: new Date(v.visited_at).toISOString?.() ?? String(v.visited_at),
+    };
+  } else {
+    const { getSqlite } = await import('./sqlite');
+    const db = await getSqlite();
+    const existsResult = await db.execute({
+      sql: `SELECT * FROM visits WHERE id = ?`,
+      args: [visitId],
+    });
+    if (existsResult.rows.length === 0) throw new Error('Not found');
+
+    const current = existsResult.rows[0] as any;
+    const name = input.name ?? String(current.name);
+    const note = input.note !== undefined ? input.note : (current.note ? String(current.note) : null);
+    const imageUrl = input.imageUrl !== undefined ? input.imageUrl : (current.image_url ? String(current.image_url) : null);
+
+    const res = await db.execute({
+      sql: `UPDATE visits SET name = ?, note = ?, image_url = ? WHERE id = ? RETURNING id, pin_id, name, note, image_url, visited_at`,
+      args: [name, note ?? null, imageUrl ?? null, visitId],
+    });
+
+    await db.execute({
+      sql: `UPDATE pins SET updated_at = datetime('now'), version = version + 1 WHERE id = ?`,
+      args: [Number(current.pin_id)],
+    });
+
+    const v: any = res.rows[0];
+    return {
+      id: Number(v.id),
+      pinId: Number(v.pin_id),
+      name: String(v.name),
+      note: v.note ? String(v.note) : null,
+      imageUrl: v.image_url ? String(v.image_url) : null,
+      visitedAt: String(v.visited_at),
+    };
+  }
+}
+
 // ===== STREETWORK STATS =====
 
 export type StreetworkStat = {
