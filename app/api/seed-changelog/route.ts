@@ -26,7 +26,7 @@ export async function GET() {
         {
           icon: '',
           title: 'Lepsza Mapa',
-          description: 'Zamieniliśmy standardową mapę na specjalną mapę transportową, która wyraźniej pokazuje ulice, ścieżki i infrastrukturę miasta.',
+          description: 'Zmieniłem standardową mapę na specjalną mapę transportową, która wyraźniej pokazuje ulice, linie autobusowe, przystanki i trasę autobusów.',
         },
         {
           icon: '',
@@ -41,7 +41,7 @@ export async function GET() {
         {
           icon: '',
           title: 'Szybsze Działanie',
-          description: 'Zoptymalizowaliśmy sposób pobierania danych. Aplikacja działa teraz płynniej i szybciej reaguje na kliknięcia.',
+          description: 'Zoptymalizowałem sposób pobierania danych. Aplikacja działa teraz płynniej i szybciej reaguje na kliknięcia.',
         },
       ]),
     };

@@ -34,7 +34,7 @@ async function seedChangelog() {
       {
         icon: '',
         title: 'Planowanie Patroli',
-        description: 'Dodałem nową zakładkę „Plan Patrolu”, która pozwala tworzyć i zarządzać planami patroli. System automatycznie układa punkty w najkrótszą trasę i pokazuje całkowity dystans do pokonania.',
+        description: 'Dodałem nową zakładkę „Plan Patrolu” w kategorii StreetWork, która pozwala tworzyć i zarządzać planami patroli. System automatycznie układa punkty w najkrótszą trasę i pokazuje całkowity dystans do pokonania.',
         badge: 'NOWE',
       },
       {
@@ -46,7 +46,7 @@ async function seedChangelog() {
       {
         icon: '',
         title: 'Lepsza Mapa',
-        description: 'Zamieniłem standardową mapę na specjalną mapę transportową, która wyraźniej pokazuje ulice, ścieżki i infrastrukturę miasta.',
+        description: 'Zamieniłem standardową mapę na specjalną mapę transportową, która wyraźniej pokazuje ulice, jak i linie autobusowe, przystanki i trasę autobusów.',
       },
       {
         icon: '',
@@ -74,7 +74,6 @@ async function seedChangelog() {
       .get(updateData.version);
 
     if (existing) {
-      console.log('✅ Changelog v2.0.0 already exists');
       return;
     }
 
