@@ -1,7 +1,8 @@
 # CRiIM Mapa
 A mobile-first, team-friendly map for tracking locations, field visits, and operational stats — built with **Next.js (App Router)**, **Leaflet**, and a **SQLite/Postgres** dual-database backend.
 
-This project is intentionally designed as a “portfolio-grade” internal tool: it focuses on practical UX, fast iteration, and robust data handling (conflict detection, schema bootstrapping, exports, tests).
+Internal tool built for social services. Live demo not available due to sensitive operational data. See code for architecture details
+
 
 ## What it does
 - **Interactive map** (OpenStreetMap tiles) with point creation, editing and deletion
